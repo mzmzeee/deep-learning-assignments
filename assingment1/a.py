@@ -1,17 +1,16 @@
-from classes import *
+from assingment1.classes import *
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 
-# Define constants hyperparamters
-CLASS1_SIZE = 10000000
-CLASS2_SIZE = 10000000
+CLASS1_SIZE = 1000000
+CLASS2_SIZE = 1000000
 N_FEATURES = 2
 N_OUTPUT = 1
 LEARNING_RATE = 0.02
 EPOCHS = 100
 TEST_SIZE = 0.25
-BATCH_SIZE = 1000
+BATCH_SIZE = 100000
 
 MEAN1 = np.array([1, 2])
 COV1 = np.array([[1, 0], [0, 1]])
@@ -28,7 +27,7 @@ plt.scatter(X[:, 0], X[:, 1], c=y)
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
 plt.title('Scatter Plot of Generated Data')
-plt.show()
+#plt.show()
 
 indices = np.arange(X.shape[0])
 np.random.shuffle(indices)
@@ -63,7 +62,6 @@ trainable = [A_node, b_node]
 epochs = EPOCHS
 learning_rate = LEARNING_RATE
 
-# Forward and Backward Pass
 def forward_pass(graph, final_node=None):
     if final_node is None:
         final_node = graph[-1]
@@ -77,7 +75,6 @@ def backward_pass(graph):
     for n in graph[::-1]:
         n.backward()
 
-# SGD Update
 def sgd_update(trainables, learning_rate=1e-2):
     for t in trainables:
         t.value -= learning_rate * t.gradients[t]
@@ -126,4 +123,4 @@ plt.scatter(X[:, 0], X[:, 1], c=y)
 plt.xlabel('Feature 1')
 plt.ylabel('Feature 2')
 plt.title('Decision Boundary')
-plt.show()
+#plt.show()
