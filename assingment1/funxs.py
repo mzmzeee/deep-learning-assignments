@@ -1,3 +1,5 @@
+from scipy.stats import multivariate_normal
+import numpy as np
 def forward_pass(graph, final_node=None):
     if final_node is None:
         final_node = graph[-1]
@@ -14,3 +16,39 @@ def backward_pass(graph):
 def sgd_update(trainables, learning_rate=1e-2):
     for t in trainables:
         t.value -= learning_rate * t.gradients[t]
+def gen_xordata(samples = 100 ,tarining_percent = 0.3 ):
+    MEAN1 = np.array([0, 0])
+    MEAN2 = np.array([5, 5])
+    MEAN3 = np.array([0, 5])
+    MEAN4 = np.array([5, 0])
+
+    COV = np.array([[0.5, 0], [0, 0.5]])
+
+    X1 = multivariate_normal.rvs(mean=MEAN1, cov=COV, size=samples)
+    X2 = multivariate_normal.rvs(mean=MEAN2, cov=COV, size=samples)
+    X3 = multivariate_normal.rvs(mean=MEAN3, cov=COV, size=samples)
+    X4 = multivariate_normal.rvs(mean=MEAN4, cov=COV, size=samples)
+
+    X_class0 = np.vstack((X1, X2))
+    y_class0 = np.zeros(len(X_class0))
+
+    X_class1 = np.vstack((X3, X4))
+    y_class1 = np.ones(len(X_class1))
+
+    X = np.vstack((X_class0, X_class1))
+    y = np.hstack((y_class0, y_class1))
+
+    indices = np.arange(X.shape[0])
+
+    np.random.shuffle(indices)
+
+    test_set_size = int(len(X) * tarining_percent)
+
+
+    test_indices = indices[:test_set_size]
+    train_indices = indices[test_set_size:]
+
+
+    X_train, X_test = X[train_indices], X[test_indices]
+    y_train, y_test = y[train_indices], y[test_indices]
+    return X_train ,X_test , y_train , y_test
