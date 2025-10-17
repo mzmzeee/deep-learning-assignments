@@ -3,12 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 
-CLASS1_SIZE = 1000
-CLASS2_SIZE = 1000
+CLASS1_SIZE = 100
+CLASS2_SIZE = 100
 N_FEATURES = 2
 N_OUTPUT = 1
 learning_rate = 0.02
-epochs = 100
+epochs = 90
 TEST_SIZE = 0.25
 BATCH_SIZE = [1,2,4,8,16,32,64,128]
 
