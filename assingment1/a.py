@@ -1,12 +1,11 @@
 from classes import *
+from funxs import *
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 
 CLASS1_SIZE = 100
 CLASS2_SIZE = 100
-N_FEATURES = 2
-N_OUTPUT = 1
 learning_rate = 0.02
 epochs = 90
 TEST_SIZE = 0.25
@@ -55,23 +54,6 @@ loss = BCE(y_node, sigmoid)
 
 graph = [x_node, y_node, A_node, b_node, linear_node, sigmoid, loss]
 trainable = [A_node, b_node]
-
-def forward_pass(graph, final_node=None):
-    if final_node is None:
-        final_node = graph[-1]
-    
-    for n in graph:
-        n.forward()
-        if n == final_node:
-            break
-
-def backward_pass(graph):
-    for n in graph[::-1]:
-        n.backward()
-
-def sgd_update(trainables, learning_rate=1e-2):
-    for t in trainables:
-        t.value -= learning_rate * t.gradients[t]
 
 plt.figure()
 

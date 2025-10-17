@@ -75,7 +75,6 @@ class BCE(Node):
         self.value = np.mean(-y_true.value * np.log(y_pred.value) - (1 - y_true.value) * np.log(1 - y_pred.value))
     def backward(self):
         y_true, y_pred = self.inputs
-        y_true, y_pred = self.inputs
         grad_y_pred = (y_pred.value - y_true.value) / (y_pred.value * (1 - y_pred.value))
         self.gradients[y_pred] = grad_y_pred / y_true.value.shape[1]
         self.gradients[y_true] = 0
