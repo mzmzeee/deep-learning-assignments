@@ -33,6 +33,31 @@ class Linear(Node):
             self.gradients[x] += A.value.T @ grad_cost
             self.gradients[A] += grad_cost @ x.value.T
             self.gradients[b] += np.sum(grad_cost, axis=1, keepdims=True)
+
+class AutomatedLinear(Node):
+    def __init__(self, x, n_in, n_out):
+        A_val = np.random.randn(n_out, n_in) * 0.1
+        b_val = np.zeros((n_out, 1))
+        self.A = Parameter(A_val)
+        self.b = Parameter(b_val)
+        Node.__init__(self, inputs=[x, self.A, self.b])
+
+    def forward(self):
+        x = self.inputs[0].value
+        A = self.inputs[1].value
+        b = self.inputs[2].value
+        self.value = A @ x + b
+    def backward(self):
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inputs}
+        for n in self.outputs:
+            grad_cost = n.gradients[self]
+            x = self.inputs[0]
+            A = self.inputs[1]
+            b = self.inputs[2]
+            self.gradients[x] += A.value.T @ grad_cost
+            self.gradients[A] += grad_cost @ x.value.T
+            self.gradients[b] += np.sum(grad_cost, axis=1, keepdims=True)
+
 class Input(Node):
     def __init__(self):
         Node.__init__(self)

@@ -1,5 +1,6 @@
 from scipy.stats import multivariate_normal
 import numpy as np
+from classes import *
 def forward_pass(graph, final_node=None):
     if final_node is None:
         final_node = graph[-1]
@@ -16,6 +17,7 @@ def backward_pass(graph):
 def sgd_update(trainables, learning_rate=1e-2):
     for t in trainables:
         t.value -= learning_rate * t.gradients[t]
+        
 def gen_xordata(samples = 100 ,test_percent = 0.3, noise=0.1 ):
     MEAN1 = np.array([0, 0])
     MEAN2 = np.array([5, 5])
@@ -52,3 +54,24 @@ def gen_xordata(samples = 100 ,test_percent = 0.3, noise=0.1 ):
     X_train, X_test = X[train_indices], X[test_indices]
     y_train, y_test = y[train_indices], y[test_indices]
     return X_train ,X_test , y_train , y_test
+
+def topological_sort(entry_node):
+    visited = set()
+    sorted_nodes = []
+
+    def visit(node):
+        if node not in visited:
+            visited.add(node)
+            for n in node.inputs:
+                visit(n)
+            sorted_nodes.append(node)
+
+    visit(entry_node)
+    return sorted_nodes
+
+def get_trainable(graph):
+    trainable_nodes = []
+    for node in graph:
+        if isinstance(node, Parameter):
+            trainable_nodes.append(node)
+    return trainable_nodes
