@@ -112,4 +112,5 @@ for i in range(cm.shape[0]):
                 color="white" if cm[i, j] > thresh else "black")
 
 plt.tight_layout()
+plt.savefig('assignment1_b_task3.png')
 plt.show()

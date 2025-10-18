@@ -79,17 +79,14 @@ accuracy = np.mean(predictions == y_test.reshape(1, -1))
 print(f"\nTest Loss: {loss.value}")
 print(f"Test Accuracy: {accuracy * 100:.2f}%")
 
-# Visualization
 plt.figure(figsize=(12, 10))
 
-# 1. Plot training data
 plt.subplot(2, 2, 1)
 plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=plt.cm.Spectral, s=20)
 plt.title("Training Data")
 plt.xlabel("Feature 1")
 plt.ylabel("Feature 2")
 
-# 2. Plot decision boundary
 plt.subplot(2, 2, 2)
 x_min, x_max = X_test[:, 0].min() - 0.5, X_test[:, 0].max() + 0.5
 y_min, y_max = X_test[:, 1].min() - 0.5, X_test[:, 1].max() + 0.5
@@ -116,7 +113,6 @@ plt.xlabel("Epoch")
 plt.ylabel("Loss")
 plt.grid(True)
 
-# 4. Plot Confusion Matrix
 ax = plt.subplot(2, 2, 4)
 y_true = y_test.reshape(1, -1)
 y_pred = predictions
@@ -137,7 +133,6 @@ ax.set(xticks=np.arange(cm.shape[1]),
        ylabel='True label',
        xlabel='Predicted label')
 
-# Loop over data dimensions and create text annotations.
 thresh = cm.max() / 2.
 for i in range(cm.shape[0]):
     for j in range(cm.shape[1]):
@@ -146,4 +141,5 @@ for i in range(cm.shape[0]):
                 color="white" if cm[i, j] > thresh else "black")
 
 plt.tight_layout()
+plt.savefig('assignment1_b_task2.png')
 plt.show()
