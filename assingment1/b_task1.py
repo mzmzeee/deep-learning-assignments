@@ -5,9 +5,9 @@ import numpy as np
 SAMPLES = 500
 LEARNING_RATE = 0.02
 EPOCHS = 100
-TRANING_PERCENT =0.4
+TEST_PERCENT =0.4
 
-X_train, X_test ,y_train, y_test = gen_xordata(SAMPLES , TRANING_PERCENT)
+X_train, X_test ,y_train, y_test = gen_xordata(SAMPLES , TEST_PERCENT)
 n_features = X_train.shape[1]
 n_output = 1
 

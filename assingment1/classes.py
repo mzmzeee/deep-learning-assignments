@@ -77,4 +77,4 @@ class BCE(Node):
         y_true, y_pred = self.inputs
         grad_y_pred = (y_pred.value - y_true.value) / (y_pred.value * (1 - y_pred.value))
         self.gradients[y_pred] = grad_y_pred / y_true.value.shape[1]
-        self.gradients[y_true] = 0
+        self.gradients[y_true] = np.zeros_like(y_true.value)

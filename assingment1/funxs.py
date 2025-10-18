@@ -16,13 +16,13 @@ def backward_pass(graph):
 def sgd_update(trainables, learning_rate=1e-2):
     for t in trainables:
         t.value -= learning_rate * t.gradients[t]
-def gen_xordata(samples = 100 ,tarining_percent = 0.3 ):
+def gen_xordata(samples = 100 ,test_percent = 0.3, noise=0.1 ):
     MEAN1 = np.array([0, 0])
     MEAN2 = np.array([5, 5])
     MEAN3 = np.array([0, 5])
     MEAN4 = np.array([5, 0])
 
-    COV = np.array([[0.5, 0], [0, 0.5]])
+    COV = np.array([[noise, 0], [0, noise]])
 
     X1 = multivariate_normal.rvs(mean=MEAN1, cov=COV, size=samples)
     X2 = multivariate_normal.rvs(mean=MEAN2, cov=COV, size=samples)
@@ -42,7 +42,7 @@ def gen_xordata(samples = 100 ,tarining_percent = 0.3 ):
 
     np.random.shuffle(indices)
 
-    test_set_size = int(len(X) * tarining_percent)
+    test_set_size = int(len(X) * test_percent)
 
 
     test_indices = indices[:test_set_size]
