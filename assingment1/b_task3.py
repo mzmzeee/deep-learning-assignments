@@ -4,26 +4,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 SAMPLES = 400
-LEARNING_RATE = 0.7
-EPOCHS = 1000
+LEARNING_RATE = 0.8
+EPOCHS = 4000
 TEST_PERCENT = 0.4
 
 X_train, X_test, y_train, y_test = gen_xordata(SAMPLES, TEST_PERCENT, noise=1)
 n_features = X_train.shape[1]
-n_hidden_1 = 20
-n_hidden_2 = 20
 n_output = 1
+
+hidden_layer_sizes = [100, 100 , 100]
 
 x_node = Input()
 y_node = Input()
 
-linear1 = AutomatedLinear(x_node, n_features, n_hidden_1)
-sigmoid1 = Sigmoid(linear1)
-linear2 = AutomatedLinear(sigmoid1, n_hidden_1, n_hidden_2)
-sigmoid2 = Sigmoid(linear2)
-linear3 = AutomatedLinear(sigmoid2, n_hidden_2, n_output)
-output_sigmoid = Sigmoid(linear3)
+current_input = x_node
+current_size = n_features
+network_layers = [x_node, y_node]
+
+for size in hidden_layer_sizes:
+    linear = AutomatedLinear(current_input, current_size, size)
+    sigmoid = Sigmoid(linear)
+    network_layers.extend([linear, sigmoid])
+    current_input = sigmoid
+    current_size = size
+
+output_linear = AutomatedLinear(current_input, current_size, n_output)
+output_sigmoid = Sigmoid(output_linear)
+network_layers.extend([output_linear, output_sigmoid])
+
 loss = BCE(y_node, output_sigmoid)
+network_layers.append(loss)
 
 graph = topological_sort(loss)
 trainable = get_trainable(graph)
@@ -111,6 +121,7 @@ for i in range(cm.shape[0]):
                 ha="center", va="center",
                 color="white" if cm[i, j] > thresh else "black")
 
+plt.suptitle(f"Test Accuracy: {accuracy * 100:.2f}%")
 plt.tight_layout()
 plt.savefig('assignment1_b_task3.png')
 plt.show()

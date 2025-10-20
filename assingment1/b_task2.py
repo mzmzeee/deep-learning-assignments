@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 SAMPLES = 400
-LEARNING_RATE = 0.7
+LEARNING_RATE = 0.8
 EPOCHS = 1000
 TEST_PERCENT =0.4
 
@@ -140,6 +140,7 @@ for i in range(cm.shape[0]):
                 ha="center", va="center",
                 color="white" if cm[i, j] > thresh else "black")
 
+plt.suptitle(f"Test Accuracy: {accuracy * 100:.2f}%")
 plt.tight_layout()
 plt.savefig('assignment1_b_task2.png')
 plt.show()

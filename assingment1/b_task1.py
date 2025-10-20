@@ -8,7 +8,7 @@ LEARNING_RATE = 0.02
 EPOCHS = 100
 TEST_PERCENT =0.4
 
-X_train, X_test ,y_train, y_test = gen_xordata(SAMPLES , TEST_PERCENT)
+X_train, X_test ,y_train, y_test = gen_xordata(SAMPLES , TEST_PERCENT ,noise=0.9)
 n_features = X_train.shape[1]
 n_output = 1
 
@@ -112,6 +112,7 @@ for i in range(cm.shape[0]):
                 ha="center", va="center",
                 color="white" if cm[i, j] > thresh else "black")
 
+plt.suptitle(f"Test Accuracy: {accuracy * 100:.2f}%")
 plt.tight_layout()
 plt.savefig('assignment1_b_task1.png')
 plt.show()

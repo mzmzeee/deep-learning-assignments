@@ -36,6 +36,7 @@ n_features = X_train.shape[1]
 n_output = 1
 
 batch_losses = []
+batch_accuracies = {}
 
 
 A = np.random.randn(n_output, n_features) * 0.1
@@ -97,6 +98,7 @@ for current_batch_size in BATCH_SIZE:
 
     accuracy = correct_predictions / X_test.shape[0]
     print(f"Accuracy for batch size {current_batch_size}: {accuracy * 100:.2f}%")
+    batch_accuracies[current_batch_size] = accuracy
 
     if current_batch_size == BATCH_SIZE[-1]:
         x_min, x_max = X[:, 0].min(), X[:, 0].max()
@@ -107,10 +109,13 @@ for current_batch_size in BATCH_SIZE:
         forward_pass(graph, sigmoid)
         Z = sigmoid.value.reshape(xx.shape)
 
+accuracy_title = "Accuracies: " + ", ".join([f"batch {b}: {a*100:.2f}%" for b, a in batch_accuracies.items()])
+plt.suptitle(accuracy_title)
 plt.title('Loss vs Epoch for Different Batch Sizes')
 plt.xlabel('Epoch')
 plt.ylabel('Training Loss')
 plt.legend()
 plt.grid(True)
+plt.tight_layout(rect=[0, 0, 1, 0.96])
 plt.savefig('assignment1_a.png')
 plt.show()

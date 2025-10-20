@@ -36,10 +36,8 @@ class Linear(Node):
 
 class AutomatedLinear(Node):
     def __init__(self, x, n_in, n_out):
-        A_val = np.random.randn(n_out, n_in) * 0.1
-        b_val = np.zeros((n_out, 1))
-        self.A = Parameter(A_val)
-        self.b = Parameter(b_val)
+        self.A = Parameter(np.random.randn(n_out, n_in) * 0.1)
+        self.b = Parameter(np.zeros((n_out, 1)))
         Node.__init__(self, inputs=[x, self.A, self.b])
 
     def forward(self):
@@ -89,8 +87,11 @@ class Sigmoid(Node):
         input_value = self.inputs[0].value
         self.value = self._sigmoid(input_value)
     def backward(self):
-        partial = self.value * (1 - self.value)
-        self.gradients[self.inputs[0]] = partial * self.outputs[0].gradients[self]
+        self.gradients = {self.inputs[0]: np.zeros_like(self.inputs[0].value)}
+        for n in self.outputs:
+            grad_cost = n.gradients[self]
+            partial = self.value * (1 - self.value)
+            self.gradients[self.inputs[0]] += grad_cost * partial
 
 class BCE(Node):
     def __init__(self, y_true, y_pred):
