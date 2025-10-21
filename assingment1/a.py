@@ -6,15 +6,15 @@ from scipy.stats import multivariate_normal
 
 np.random.seed(42)
 
-CLASS1_SIZE = 140
-CLASS2_SIZE = 140
+CLASS1_SIZE = 100
+CLASS2_SIZE = 100
 
-learning_rate = 0.5 
-epochs = 100 
+learning_rate = 0.03
+epochs = 50 
 TEST_SIZE = 0.25
-BATCH_SIZE = [1, 4, 8, 16, 64, 128]
+BATCH_SIZE = [1, 4, 8, 16, 64, 128, 256,512,1024]
 
-COV_SCALE = 2.1
+COV_SCALE = 1.5
 MEAN1 = np.array([0.6, 1.0])
 COV1 = COV_SCALE * np.array([[1.0, 0.7],
                              [0.7, 1.0]])
