@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 SAMPLES = 400
-LEARNING_RATE = 0.8
+LEARNING_RATE = 0.9
 EPOCHS = 4000
 TEST_PERCENT = 0.4
 
@@ -12,7 +12,7 @@ X_train, X_test, y_train, y_test = gen_xordata(SAMPLES, TEST_PERCENT, noise=1)
 n_features = X_train.shape[1]
 n_output = 1
 
-hidden_layer_sizes = [100, 100 , 100]
+hidden_layer_sizes = [100,100,100]
 
 x_node = Input()
 y_node = Input()
@@ -123,5 +123,50 @@ for i in range(cm.shape[0]):
 
 plt.suptitle(f"Test Accuracy: {accuracy * 100:.2f}%")
 plt.tight_layout()
-plt.savefig('assignment1_b_task3.png')
+
+plt.figure()
+plt.scatter(X_train[:, 0], X_train[:, 1], c=y_train, cmap=plt.cm.Spectral, s=20)
+plt.title("Training Data")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+save_plot("b_task3_training_data.png")
+plt.close()
+
+plt.figure()
+plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.8)
+plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=plt.cm.Spectral, s=20)
+plt.title("Decision Boundary on Test Data")
+plt.xlabel("Feature 1")
+plt.ylabel("Feature 2")
+save_plot("b_task3_decision_boundary.png")
+plt.close()
+
+plt.figure()
+plt.plot(range(EPOCHS), losses)
+plt.title("Training Loss over Epochs")
+plt.xlabel("Epoch")
+plt.ylabel("Loss")
+plt.grid(True)
+save_plot("b_task3_training_loss.png")
+plt.close()
+
+fig, ax = plt.subplots()
+im = ax.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+ax.figure.colorbar(im, ax=ax)
+ax.set(xticks=np.arange(cm.shape[1]),
+       yticks=np.arange(cm.shape[0]),
+       xticklabels=['Predicted 0', 'Predicted 1'], yticklabels=['True 0', 'True 1'],
+       title='Confusion Matrix',
+       ylabel='True label',
+       xlabel='Predicted label')
+thresh = cm.max() / 2.
+for i in range(cm.shape[0]):
+    for j in range(cm.shape[1]):
+        ax.text(j, i, format(cm[i, j], 'd'),
+                ha="center", va="center",
+                color="white" if cm[i, j] > thresh else "black")
+save_plot("b_task3_confusion_matrix.png")
+plt.close()
+
+save_plot('assignment1_b_task3.png')
 plt.show()

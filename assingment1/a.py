@@ -4,17 +4,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import multivariate_normal
 
-CLASS1_SIZE = 100
-CLASS2_SIZE = 100
-learning_rate = 0.02
-epochs = 90
-TEST_SIZE = 0.25
-BATCH_SIZE = [1,2,4,8,16,32,64,128]
+np.random.seed(42)
 
-MEAN1 = np.array([1, 2])
-COV1 = np.array([[1, 0], [0, 1]])
-MEAN2 = np.array([1, -2])
-COV2 = np.array([[1, 0], [0, 1]])
+CLASS1_SIZE = 140
+CLASS2_SIZE = 140
+
+learning_rate = 0.5 
+epochs = 100 
+TEST_SIZE = 0.25
+BATCH_SIZE = [1, 4, 8, 16, 64, 128]
+
+COV_SCALE = 2.1
+MEAN1 = np.array([0.6, 1.0])
+COV1 = COV_SCALE * np.array([[1.0, 0.7],
+                             [0.7, 1.0]])
+MEAN2 = np.array([-0.4, -1.0])
+COV2 = COV_SCALE * np.array([[1.0, -0.7],
+                             [-0.7, 1.0]])
 
 X1 = multivariate_normal.rvs(MEAN1, COV1, CLASS1_SIZE)
 X2 = multivariate_normal.rvs(MEAN2, COV2, CLASS2_SIZE)
@@ -22,15 +28,8 @@ X2 = multivariate_normal.rvs(MEAN2, COV2, CLASS2_SIZE)
 X = np.vstack((X1, X2))
 y = np.hstack((np.zeros(CLASS1_SIZE), np.ones(CLASS2_SIZE)))
 
-indices = np.arange(X.shape[0])
-np.random.shuffle(indices)
 
-test_set_size = int(len(X) * TEST_SIZE)
-test_indices = indices[:test_set_size]
-train_indices = indices[test_set_size:]
-
-X_train, X_test = X[train_indices], X[test_indices]
-y_train, y_test = y[train_indices], y[test_indices]
+X_train, X_test, y_train, y_test = split_data(X, y, test_size=TEST_SIZE)
 
 n_features = X_train.shape[1]
 n_output = 1
@@ -56,7 +55,16 @@ loss = BCE(y_node, sigmoid)
 graph = [x_node, y_node, A_node, b_node, linear_node, sigmoid, loss]
 trainable = [A_node, b_node]
 
-plt.figure()
+fig, axs = plt.subplots(2, 2, figsize=(15, 12))
+
+axs[0, 0].scatter(X[y==0][:, 0], X[y==0][:, 1], label='Class 0')
+axs[0, 0].scatter(X[y==1][:, 0], X[y==1][:, 1], label='Class 1')
+axs[0, 0].set_title('Data Distribution')
+axs[0, 0].set_xlabel('Feature 1')
+axs[0, 0].set_ylabel('Feature 2')
+axs[0, 0].legend()
+axs[0, 0].grid(True)
+
 
 for current_batch_size in BATCH_SIZE:
     print(f"Training with batch size: {current_batch_size}")
@@ -85,10 +93,10 @@ for current_batch_size in BATCH_SIZE:
 
         final_loss = loss_value / X_train.shape[0]
         epoch_losses.append(final_loss)
-        if (epoch + 1) % 10 == 0: # Print loss every 10 epochs to reduce verbosity
+        if (epoch + 1) % 10 == 0: 
             print(f"Epoch {epoch + 1}, Loss: {final_loss}")
     
-    plt.plot(range(epochs), epoch_losses, label=f'batch={current_batch_size}')
+    axs[1, 1].plot(range(epochs), epoch_losses, label=f'batch={current_batch_size}')
 
     correct_predictions = 0
     x_node.value = X_test.T
@@ -99,23 +107,86 @@ for current_batch_size in BATCH_SIZE:
     accuracy = correct_predictions / X_test.shape[0]
     print(f"Accuracy for batch size {current_batch_size}: {accuracy * 100:.2f}%")
     batch_accuracies[current_batch_size] = accuracy
+    # Build decision boundary and per-batch visualizations
+    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.02),
+                         np.arange(y_min, y_max, 0.02))
+    grid = np.c_[xx.ravel(), yy.ravel()]
+    x_node.value = grid.T
+    forward_pass(graph, sigmoid)
+    Z = sigmoid.value.reshape(xx.shape)
 
+    # Confusion matrix from test predictions
+    y_test_flat = y_test.flatten()
+    predictions_flat = predictions.flatten()
+    tn = np.sum((y_test_flat == 0) & (predictions_flat == 0))
+    fp = np.sum((y_test_flat == 0) & (predictions_flat == 1))
+    fn = np.sum((y_test_flat == 1) & (predictions_flat == 0))
+    tp = np.sum((y_test_flat == 1) & (predictions_flat == 1))
+    cm = np.array([[tn, fp], [fn, tp]])
+
+    # Show in combined figure only for the last batch (to avoid clutter)
     if current_batch_size == BATCH_SIZE[-1]:
-        x_min, x_max = X[:, 0].min(), X[:, 0].max()
-        y_min, y_max = X[:, 1].min(), X[:, 1].max()
-        xx, yy = np.meshgrid(np.linspace(x_min, x_max), np.linspace(y_min, y_max))
-        grid = np.c_[xx.ravel(), yy.ravel()]
-        x_node.value = grid.T
-        forward_pass(graph, sigmoid)
-        Z = sigmoid.value.reshape(xx.shape)
+        axs[0, 1].contourf(xx, yy, Z, alpha=0.8, cmap=plt.cm.RdBu)
+        axs[0, 1].scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=plt.cm.RdBu, edgecolors='k')
+        axs[0, 1].set_title(f'Decision Boundary (batch={current_batch_size})')
+        axs[0, 1].set_xlabel('Feature 1')
+        axs[0, 1].set_ylabel('Feature 2')
+
+        im = axs[1, 0].imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+        axs[1, 0].set_title(f'Confusion Matrix (batch={current_batch_size})')
+        tick_marks = np.arange(2)
+        axs[1, 0].set_xticks(tick_marks, ['Class 0', 'Class 1'])
+        axs[1, 0].set_yticks(tick_marks, ['Class 0', 'Class 1'])
+        thresh = cm.max() / 2.
+        for i in range(cm.shape[0]):
+            for j in range(cm.shape[1]):
+                axs[1, 0].text(j, i, format(cm[i, j], 'd'),
+                               ha="center", va="center",
+                               color="white" if cm[i, j] > thresh else "black")
+        axs[1, 0].set_ylabel('True label')
+        axs[1, 0].set_xlabel('Predicted label')
+
+    # Save per-batch decision boundary
+    plt.figure()
+    plt.contourf(xx, yy, Z, alpha=0.8, cmap=plt.cm.RdBu)
+    plt.scatter(X_test[:, 0], X_test[:, 1], c=y_test, cmap=plt.cm.RdBu, edgecolors='k')
+    plt.title(f'Decision Boundary (batch={current_batch_size})')
+    plt.xlabel('Feature 1')
+    plt.ylabel('Feature 2')
+    save_plot(f"a_decision_boundary_batch_{current_batch_size}.png")
+    plt.close()
+
+    # Save per-batch confusion matrix
+    fig_cm, ax_cm = plt.subplots()
+    im_cm = ax_cm.imshow(cm, interpolation='nearest', cmap=plt.cm.Blues)
+    ax_cm.set_title(f'Confusion Matrix (batch={current_batch_size})')
+    fig_cm.colorbar(im_cm, ax=ax_cm)
+    tick_marks = np.arange(2)
+    ax_cm.set_xticks(tick_marks, ['Class 0', 'Class 1'])
+    ax_cm.set_yticks(tick_marks, ['Class 0', 'Class 1'])
+    thresh = cm.max() / 2.
+    for i in range(cm.shape[0]):
+        for j in range(cm.shape[1]):
+            ax_cm.text(j, i, format(cm[i, j], 'd'),
+                       ha="center", va="center",
+                       color="white" if cm[i, j] > thresh else "black")
+    ax_cm.set_ylabel('True label')
+    ax_cm.set_xlabel('Predicted label')
+    save_plot(f"a_confusion_matrix_batch_{current_batch_size}.png")
+    plt.close()
+
 
 accuracy_title = "Accuracies: " + ", ".join([f"batch {b}: {a*100:.2f}%" for b, a in batch_accuracies.items()])
-plt.suptitle(accuracy_title)
-plt.title('Loss vs Epoch for Different Batch Sizes')
-plt.xlabel('Epoch')
-plt.ylabel('Training Loss')
-plt.legend()
-plt.grid(True)
-plt.tight_layout(rect=[0, 0, 1, 0.96])
-plt.savefig('assignment1_a.png')
+fig.suptitle(accuracy_title)
+
+axs[1, 1].set_title('Loss vs Epoch for Different Batch Sizes')
+axs[1, 1].set_xlabel('Epoch')
+axs[1, 1].set_ylabel('Training Loss')
+axs[1, 1].legend()
+axs[1, 1].grid(True)
+
+fig.tight_layout(pad=3.0)
+save_plot('assignment1_a_combined.png')
 plt.show()

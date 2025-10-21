@@ -1,6 +1,9 @@
 from scipy.stats import multivariate_normal
 import numpy as np
 from classes import *
+import matplotlib.pyplot as plt
+import os
+
 def forward_pass(graph, final_node=None):
     if final_node is None:
         final_node = graph[-1]
@@ -41,19 +44,25 @@ def gen_xordata(samples = 100 ,test_percent = 0.3, noise=0.1 ):
     y = np.hstack((y_class0, y_class1))
 
     indices = np.arange(X.shape[0])
-
     np.random.shuffle(indices)
-
     test_set_size = int(len(X) * test_percent)
-
-
     test_indices = indices[:test_set_size]
     train_indices = indices[test_set_size:]
-
-
     X_train, X_test = X[train_indices], X[test_indices]
     y_train, y_test = y[train_indices], y[test_indices]
-    return X_train ,X_test , y_train , y_test
+    return X_train, X_test, y_train, y_test
+
+def split_data(X, y, test_size=0.25, seed=None):
+    if seed is not None:
+        np.random.seed(seed)
+    indices = np.arange(X.shape[0])
+    np.random.shuffle(indices)
+    test_set_size = int(len(X) * test_size)
+    test_indices = indices[:test_set_size]
+    train_indices = indices[test_set_size:]
+    X_train, X_test = X[train_indices], X[test_indices]
+    y_train, y_test = y[train_indices], y[test_indices]
+    return X_train, X_test, y_train, y_test
 
 def topological_sort(entry_node):
     visited = set()
@@ -75,3 +84,10 @@ def get_trainable(graph):
         if isinstance(node, Parameter):
             trainable_nodes.append(node)
     return trainable_nodes
+
+def save_plot(filename):
+    path = 'assingment1/figure'
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    plt.savefig(os.path.join(path, filename))
