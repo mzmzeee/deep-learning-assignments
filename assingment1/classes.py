@@ -163,6 +163,149 @@ class ReLU(Node):
             grad_cost = n.gradients[self]
             self.gradients[self.inputs[0]] += grad_cost * (self.inputs[0].value > 0)
 
+class Conv(Node):
+    def __init__(self, input_node, num_filters, input_channels, filter_size, stride=1, padding=0):
+        self.num_filters = num_filters
+        self.input_channels = input_channels
+        self.filter_size = filter_size
+        self.stride = stride
+        self.padding = padding
+
+        weight_shape = (num_filters, input_channels, filter_size, filter_size)
+        weight_scale = np.sqrt(2.0 / (input_channels * filter_size * filter_size))
+        self.W = Parameter(np.random.randn(*weight_shape) * weight_scale)
+        self.b = Parameter(np.zeros(num_filters))
+
+        Node.__init__(self, [input_node, self.W, self.b])
+
+    def forward(self):
+        x = self.inputs[0].value
+        W = self.inputs[1].value
+        b = self.inputs[2].value
+
+        batch_size, _, height, width = x.shape
+        pad = self.padding
+        stride = self.stride
+        filter_size = self.filter_size
+
+        if pad > 0:
+            x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
+        else:
+            x_padded = x
+
+        out_height = (x_padded.shape[2] - filter_size) // stride + 1
+        out_width = (x_padded.shape[3] - filter_size) // stride + 1
+
+        out = np.zeros((batch_size, self.num_filters, out_height, out_width))
+
+        for i in range(out_height):
+            h_start = i * stride
+            h_end = h_start + filter_size
+            for j in range(out_width):
+                w_start = j * stride
+                w_end = w_start + filter_size
+                region = x_padded[:, :, h_start:h_end, w_start:w_end]
+                for f in range(self.num_filters):
+                    out[:, f, i, j] = np.sum(region * W[f][None, :, :, :], axis=(1, 2, 3)) + b[f]
+
+        self.value = out
+        self.cache = (x, x_padded)
+
+    def backward(self):
+        x, x_padded = self.cache
+        W = self.inputs[1].value
+        pad = self.padding
+        stride = self.stride
+        filter_size = self.filter_size
+
+        dx_padded = np.zeros_like(x_padded)
+        dW = np.zeros_like(W)
+        db = np.zeros_like(self.inputs[2].value)
+
+        out_height = self.value.shape[2]
+        out_width = self.value.shape[3]
+
+        for n in self.outputs:
+            grad_cost = n.gradients[self]
+            db += np.sum(grad_cost, axis=(0, 2, 3))
+            for i in range(out_height):
+                h_start = i * stride
+                h_end = h_start + filter_size
+                for j in range(out_width):
+                    w_start = j * stride
+                    w_end = w_start + filter_size
+                    region = x_padded[:, :, h_start:h_end, w_start:w_end]
+                    for f in range(self.num_filters):
+                        grad = grad_cost[:, f, i, j][:, None, None, None]
+                        dW[f] += np.sum(region * grad, axis=0)
+                        dx_padded[:, :, h_start:h_end, w_start:w_end] += grad * W[f][None, :, :, :]
+
+        if pad > 0:
+            dx = dx_padded[:, :, pad:-pad, pad:-pad]
+        else:
+            dx = dx_padded
+
+        self.gradients = {
+            self.inputs[0]: dx,
+            self.inputs[1]: dW,
+            self.inputs[2]: db
+        }
+
+class MaxPooling(Node):
+    def __init__(self, input_node, pool_size, stride):
+        self.pool_size = pool_size
+        self.stride = stride
+        Node.__init__(self, [input_node])
+
+    def forward(self):
+        x = self.inputs[0].value
+        batch_size, channels, height, width = x.shape
+        pool_size = self.pool_size
+        stride = self.stride
+
+        out_height = (height - pool_size) // stride + 1
+        out_width = (width - pool_size) // stride + 1
+
+        out = np.zeros((batch_size, channels, out_height, out_width))
+        self.max_mask = np.zeros_like(x, dtype=bool)
+
+        for i in range(out_height):
+            h_start = i * stride
+            h_end = h_start + pool_size
+            for j in range(out_width):
+                w_start = j * stride
+                w_end = w_start + pool_size
+                window = x[:, :, h_start:h_end, w_start:w_end]
+                max_vals = np.max(window, axis=(2, 3))
+                out[:, :, i, j] = max_vals
+                mask = window == max_vals[:, :, None, None]
+                self.max_mask[:, :, h_start:h_end, w_start:w_end] = mask
+
+        self.value = out
+
+    def backward(self):
+        x = self.inputs[0].value
+        pool_size = self.pool_size
+        stride = self.stride
+        out_height = self.value.shape[2]
+        out_width = self.value.shape[3]
+
+        dx = np.zeros_like(x)
+
+        for n in self.outputs:
+            grad_cost = n.gradients[self]
+            for i in range(out_height):
+                h_start = i * stride
+                h_end = h_start + pool_size
+                for j in range(out_width):
+                    w_start = j * stride
+                    w_end = w_start + pool_size
+                    window_mask = self.max_mask[:, :, h_start:h_end, w_start:w_end]
+                    grad = grad_cost[:, :, i, j][:, :, None, None]
+                    dx[:, :, h_start:h_end, w_start:w_end] += grad * window_mask
+
+        self.gradients = {self.inputs[0]: dx}
+
 class L2(Node):
     def __init__(self, *params):
         Node.__init__(self, params)

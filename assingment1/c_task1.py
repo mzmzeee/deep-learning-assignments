@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.datasets import load_digits
-from funxs import forward_pass, backward_pass, sgd_update, split_data, topological_sort, one_hot, save_plot
-from classes import Input, Parameter, Linear, ReLU, Softmax, CE
+from funxs import *
+from classes import *
 
 mnist = load_digits()
 X = mnist.data.astype(np.float32) / 16.0
