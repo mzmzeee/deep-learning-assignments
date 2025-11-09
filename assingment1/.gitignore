@@ -118,3 +118,6 @@ dmypy.json
 .vscode/
 
 figure/
+quesetions.py
+ee569_outputs/
+Full_MNIST.py
