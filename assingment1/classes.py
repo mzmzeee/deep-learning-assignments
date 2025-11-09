@@ -306,6 +306,23 @@ class MaxPooling(Node):
 
         self.gradients = {self.inputs[0]: dx}
 
+class Flatten(Node):
+    def __init__(self, input_node):
+        Node.__init__(self, [input_node])
+
+    def forward(self):
+        x = self.inputs[0].value
+        self.orig_shape = x.shape
+        batch_size = x.shape[0]
+        self.value = x.reshape(batch_size, -1).T
+
+    def backward(self):
+        self.gradients = {self.inputs[0]: np.zeros_like(self.inputs[0].value)}
+        for n in self.outputs:
+            grad_cost = n.gradients[self]
+            reshaped = grad_cost.T.reshape(self.orig_shape)
+            self.gradients[self.inputs[0]] += reshaped
+
 class L2(Node):
     def __init__(self, *params):
         Node.__init__(self, params)
