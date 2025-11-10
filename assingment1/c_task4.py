@@ -77,6 +77,19 @@ predictions = np.argmax(output.value, axis=0)
 accuracy = np.mean(predictions == y_test)
 print(f"Best CNN Test Accuracy: {accuracy:.4f}")
 
+probabilities = output.value
+metrics = compute_classification_metrics(y_test, predictions, num_classes=10)
+print("Classification summary:")
+print(format_classification_metrics(metrics, class_names=mnist.target_names))
+
+rng = np.random.default_rng(13)
+sample_count = min(8, len(y_test))
+sample_indices = rng.choice(len(y_test), size=sample_count, replace=False)
+print("Sample deep CNN predictions with confidence:")
+for idx in sample_indices:
+    confidence = probabilities[predictions[idx], idx]
+    print(f" idx {idx:4d} | true={y_test[idx]} pred={predictions[idx]} conf={confidence:.3f}")
+
 fig_loss, ax_loss = plt.subplots()
 ax_loss.plot(loss_history)
 ax_loss.set_xlabel('Epoch')
@@ -86,9 +99,7 @@ ax_loss.grid(True)
 save_plot('c_task4_best_cnn_loss.png')
 plt.close(fig_loss)
 
-cm = np.zeros((10, 10), dtype=int)
-for true_label, pred_label in zip(y_test, predictions):
-    cm[true_label, pred_label] += 1
+cm = metrics['confusion_matrix']
 
 fig_cm, ax_cm = plt.subplots()
 im = ax_cm.imshow(cm, cmap=plt.cm.Blues)
@@ -103,3 +114,18 @@ for i in range(10):
         ax_cm.text(j, i, str(cm[i, j]), ha='center', va='center', color='white' if cm[i, j] > cm.max() / 2 else 'black')
 save_plot('c_task4_best_cnn_cm.png')
 plt.close(fig_cm)
+
+plot_sample_predictions(X_test[:, 0, :, :], y_test, predictions, 'c_task4_sample_predictions.png', num_samples=12, class_names=mnist.target_names, random_state=9)
+
+log_metrics('c_task4', {
+    'accuracy': float(metrics['accuracy']),
+    'macro_f1': float(metrics['macro_f1']),
+    'min_training_loss': float(np.min(loss_history)),
+    'final_training_loss': float(loss_history[-1])
+})
+
+plot_metric_summary(metric_key='accuracy', filename='c_tasks_accuracy.png', title='C Tasks Accuracy Comparison')
+plot_metric_summary(metric_key='macro_f1', filename='c_tasks_macro_f1.png', title='C Tasks Macro F1 Comparison')
+best_task, best_value = get_best_metric('accuracy')
+if best_task is not None:
+    print(f"Highest recorded accuracy so far: {best_task} with {best_value:.2%}")

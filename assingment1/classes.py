@@ -1,4 +1,5 @@
 import numpy as np
+from funxs import im2col, col2im
 
 class Node:
     def __init__(self, inputs=None):
@@ -183,73 +184,47 @@ class Conv(Node):
         W = self.inputs[1].value
         b = self.inputs[2].value
 
-        batch_size, _, height, width = x.shape
-        pad = self.padding
+        FN, C, FH, FW = W.shape
+        N, _, H, W_in = x.shape
         stride = self.stride
-        filter_size = self.filter_size
+        pad = self.padding
 
-        if pad > 0:
-            x_padded = np.pad(x, ((0, 0), (0, 0), (pad, pad), (pad, pad)), mode='constant')
-        else:
-            x_padded = x
+        out_h = (H + 2 * pad - FH) // stride + 1
+        out_w = (W_in + 2 * pad - FW) // stride + 1
 
-        out_height = (x_padded.shape[2] - filter_size) // stride + 1
-        out_width = (x_padded.shape[3] - filter_size) // stride + 1
+        col = im2col(x, FH, FW, stride, pad)
+        col_W = W.reshape(FN, -1).T
 
-        out = np.zeros((batch_size, self.num_filters, out_height, out_width))
-
-        for i in range(out_height):
-            h_start = i * stride
-            h_end = h_start + filter_size
-            for j in range(out_width):
-                w_start = j * stride
-                w_end = w_start + filter_size
-                region = x_padded[:, :, h_start:h_end, w_start:w_end]
-                for f in range(self.num_filters):
-                    out[:, f, i, j] = np.sum(region * W[f][None, :, :, :], axis=(1, 2, 3)) + b[f]
+        out = col @ col_W + b
+        out = out.reshape(N, out_h, out_w, FN).transpose(0, 3, 1, 2)
 
         self.value = out
-        self.cache = (x, x_padded)
+        self.cache = (col, x.shape)
 
     def backward(self):
-        x, x_padded = self.cache
+        col, x_shape = self.cache
         W = self.inputs[1].value
-        pad = self.padding
+        FN, C, FH, FW = W.shape
         stride = self.stride
-        filter_size = self.filter_size
+        pad = self.padding
 
-        dx_padded = np.zeros_like(x_padded)
-        dW = np.zeros_like(W)
-        db = np.zeros_like(self.inputs[2].value)
+        self.gradients = {n: np.zeros_like(n.value) for n in self.inputs}
 
-        out_height = self.value.shape[2]
-        out_width = self.value.shape[3]
+        col_W = W.reshape(FN, -1).T
 
         for n in self.outputs:
             grad_cost = n.gradients[self]
-            db += np.sum(grad_cost, axis=(0, 2, 3))
-            for i in range(out_height):
-                h_start = i * stride
-                h_end = h_start + filter_size
-                for j in range(out_width):
-                    w_start = j * stride
-                    w_end = w_start + filter_size
-                    region = x_padded[:, :, h_start:h_end, w_start:w_end]
-                    for f in range(self.num_filters):
-                        grad = grad_cost[:, f, i, j][:, None, None, None]
-                        dW[f] += np.sum(region * grad, axis=0)
-                        dx_padded[:, :, h_start:h_end, w_start:w_end] += grad * W[f][None, :, :, :]
+            grad_cost = grad_cost.transpose(0, 2, 3, 1).reshape(-1, FN)
 
-        if pad > 0:
-            dx = dx_padded[:, :, pad:-pad, pad:-pad]
-        else:
-            dx = dx_padded
+            self.gradients[self.inputs[2]] += np.sum(grad_cost, axis=0)
 
-        self.gradients = {
-            self.inputs[0]: dx,
-            self.inputs[1]: dW,
-            self.inputs[2]: db
-        }
+            dW = col.T @ grad_cost
+            dW = dW.transpose(1, 0).reshape(FN, C, FH, FW)
+            self.gradients[self.inputs[1]] += dW
+
+            dcol = grad_cost @ col_W.T
+            dx = col2im(dcol, x_shape, FH, FW, stride, pad)
+            self.gradients[self.inputs[0]] += dx
 
 class MaxPooling(Node):
     def __init__(self, input_node, pool_size, stride):
@@ -259,52 +234,46 @@ class MaxPooling(Node):
 
     def forward(self):
         x = self.inputs[0].value
-        batch_size, channels, height, width = x.shape
+        N, C, H, W = x.shape
         pool_size = self.pool_size
         stride = self.stride
 
-        out_height = (height - pool_size) // stride + 1
-        out_width = (width - pool_size) // stride + 1
+        out_h = (H - pool_size) // stride + 1
+        out_w = (W - pool_size) // stride + 1
 
-        out = np.zeros((batch_size, channels, out_height, out_width))
-        self.max_mask = np.zeros_like(x, dtype=bool)
+        col = im2col(x, pool_size, pool_size, stride)
+        col = col.reshape(N * out_h * out_w, C, pool_size * pool_size)
 
-        for i in range(out_height):
-            h_start = i * stride
-            h_end = h_start + pool_size
-            for j in range(out_width):
-                w_start = j * stride
-                w_end = w_start + pool_size
-                window = x[:, :, h_start:h_end, w_start:w_end]
-                max_vals = np.max(window, axis=(2, 3))
-                out[:, :, i, j] = max_vals
-                mask = window == max_vals[:, :, None, None]
-                self.max_mask[:, :, h_start:h_end, w_start:w_end] = mask
+        arg_max = np.argmax(col, axis=2)
+        out = np.max(col, axis=2)
+
+        out = out.reshape(N, out_h, out_w, C).transpose(0, 3, 1, 2)
 
         self.value = out
+        self.cache = (arg_max, x.shape, out_h, out_w)
 
     def backward(self):
-        x = self.inputs[0].value
+        arg_max, x_shape, out_h, out_w = self.cache
         pool_size = self.pool_size
         stride = self.stride
-        out_height = self.value.shape[2]
-        out_width = self.value.shape[3]
+        N, C, _, _ = x_shape
 
-        dx = np.zeros_like(x)
+        self.gradients = {self.inputs[0]: np.zeros(x_shape, dtype=self.value.dtype)}
 
         for n in self.outputs:
             grad_cost = n.gradients[self]
-            for i in range(out_height):
-                h_start = i * stride
-                h_end = h_start + pool_size
-                for j in range(out_width):
-                    w_start = j * stride
-                    w_end = w_start + pool_size
-                    window_mask = self.max_mask[:, :, h_start:h_end, w_start:w_end]
-                    grad = grad_cost[:, :, i, j][:, :, None, None]
-                    dx[:, :, h_start:h_end, w_start:w_end] += grad * window_mask
+            grad_cost = grad_cost.transpose(0, 2, 3, 1)
+            grad_flat = grad_cost.reshape(-1, C)
 
-        self.gradients = {self.inputs[0]: dx}
+            dcol = np.zeros((grad_flat.shape[0], C, pool_size * pool_size), dtype=grad_flat.dtype)
+            flat_dcol = dcol.reshape(-1, pool_size * pool_size)
+            flat_indices = arg_max.reshape(-1)
+            flat_values = grad_flat.reshape(-1)
+            flat_dcol[np.arange(flat_indices.size), flat_indices] = flat_values
+
+            dcol = dcol.reshape(-1, C * pool_size * pool_size)
+            dx = col2im(dcol, x_shape, pool_size, pool_size, stride)
+            self.gradients[self.inputs[0]] += dx
 
 class Flatten(Node):
     def __init__(self, input_node):
