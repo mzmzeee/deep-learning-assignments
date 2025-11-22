@@ -283,3 +283,10 @@ def finish():
     global _logger
     if _logger:
         _logger.finish()
+
+
+def log_predictions(images, seg_preds, seg_targets, epoch, num_samples=4):
+    """Convenience function to log predictions."""
+    global _logger
+    if _logger:
+        _logger.log_predictions(images, seg_preds, seg_targets, epoch, num_samples)

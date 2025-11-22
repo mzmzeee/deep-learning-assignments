@@ -111,6 +111,28 @@ class SimpleDetectionHead(nn.Module):
         }
 
 
+class FCNHead(nn.Module):
+    """Fully Convolutional Network head."""
+    
+    def __init__(self, backbone_channels, num_classes=21, activation="relu", dropout_rate=0.0):
+        super().__init__()
+        
+        # FCN-32s style (simplified)
+        # Reduce channels
+        self.conv1 = ConvBlock(backbone_channels, 512, activation, dropout_rate)
+        self.conv2 = nn.Conv2d(512, num_classes, kernel_size=1)
+        
+        # Upsample to original size (32x)
+        self.upsample = nn.ConvTranspose2d(num_classes, num_classes, kernel_size=32, stride=32, bias=False)
+        
+    def forward(self, features):
+        x = features['c5']
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.upsample(x)
+        return x
+
+
 class MultiTaskCNN(nn.Module):
     """Main multi-task model."""
 
@@ -150,12 +172,20 @@ class MultiTaskCNN(nn.Module):
                 activation=model_cfg["activation"],
                 dropout_rate=model_cfg["dropout_rate"] if config["regularization"]["dropout_enabled"] else 0.0
             )
+        elif model_cfg["segmentation_head"] == "fcn":
+            self.segmentation_head = FCNHead(
+                backbone_channels=backbone_channels,
+                num_classes=num_classes_seg,
+                activation=model_cfg["activation"],
+                dropout_rate=model_cfg["dropout_rate"] if config["regularization"]["dropout_enabled"] else 0.0
+            )
         else:
             raise ValueError(f"Unsupported segmentation head: {model_cfg['segmentation_head']}")
 
         # Detection head
-        if model_cfg["detection_head"] == "fpn":
-            # Using our simple detection head for now
+        if model_cfg["detection_head"] in ["fpn", "simple"]:
+            # Using our simple detection head for both currently
+            # In a real FPN, we'd use multiple feature levels
             self.detection_head = SimpleDetectionHead(
                 backbone_channels=backbone_channels,
                 num_classes=num_classes_det,
