@@ -1,6 +1,5 @@
 """
 Multi-task model: ResNet backbone + U-Net segmentation head + FPN detection head.
-Students modify: architecture components, dropout placement, activation functions.
 """
 
 import torch
@@ -82,7 +81,8 @@ class SimpleDetectionHead(nn.Module):
 
     def _create_anchors(self):
         """Create simple anchor boxes."""
-        # For educational purposes: 5x5 grid of anchors
+        """Create simple anchor boxes."""
+        # 5x5 grid of anchors
         grid_size = 5
         anchors = []
         for i in range(grid_size):
@@ -126,8 +126,10 @@ class MultiTaskCNN(nn.Module):
         if model_cfg["backbone"] == "resnet18":
             backbone = models.resnet18()
             backbone_channels = 512
-        ##elif model_cfg["backbone"] == "resnet34":
-        ##elif model_cfg["backbone"] == "resnet50":
+        elif model_cfg["backbone"] == "resnet34":
+            backbone = models.resnet34()
+            backbone_channels = 512
+        # elif model_cfg["backbone"] == "resnet50":
         else:
             raise ValueError(f"Unknown backbone: {model_cfg['backbone']}")
 

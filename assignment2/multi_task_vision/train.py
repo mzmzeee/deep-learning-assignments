@@ -1,6 +1,5 @@
 """
 Main training script.
-Students run this script with different config modifications.
 """
 
 import torch
@@ -21,21 +20,29 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def main():
+def main(experiment_name=None, experiment_config=None):
     # Set seed for reproducibility
     set_seed(CONFIG["system"]["seed"])
 
-    # Initialize Aim (students should customize run_name)
-    run_name = input("Enter a descriptive run name (or press Enter for default): ")
-    if not run_name.strip():
-        run_name = None
-
-    # Add experiment tags
-    tags = input("Enter experiment tags (comma-separated, e.g., phase1-architecture,relu): ")
-    if tags.strip():
-        tags = [tag.strip() for tag in tags.split(",")]
-        # Aim doesn't have tags in the same way, but we can store them in params
+    if experiment_config:
+        # Programmatic mode
+        CONFIG.update(experiment_config)
+        run_name = experiment_name
+        # Auto-tag based on category (e.g., "baseline" from "baseline_01")
+        tags = [experiment_name.split('_')[0]]
         CONFIG["system"]["experiment_tags"] = tags
+    else:
+        # Interactive mode
+        run_name = input("Enter a descriptive run name (or press Enter for default): ")
+        if not run_name.strip():
+            run_name = None
+
+        # Add experiment tags
+        tags = input("Enter experiment tags (comma-separated, e.g., phase1-architecture,relu): ")
+        if tags.strip():
+            tags = [tag.strip() for tag in tags.split(",")]
+            # Aim doesn't have tags in the same way, but we can store them in params
+            CONFIG["system"]["experiment_tags"] = tags
 
     init_aim(CONFIG, run_name=run_name)
 
