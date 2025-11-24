@@ -30,6 +30,7 @@ except ImportError:
 
 import torch
 import os
+import numpy as np
 from datetime import datetime
 
 
@@ -235,8 +236,8 @@ class AimLogger:
 
         # Convert to PIL Image
         fig.canvas.draw()
-        img_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        img_array = img_array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        img_array = np.frombuffer(fig.canvas.buffer_rgba(), dtype=np.uint8)
+        img_array = img_array.reshape(fig.canvas.get_width_height()[::-1] + (4,))[..., :3]
         plt.close(fig)
 
         return Image.fromarray(img_array)

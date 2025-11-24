@@ -148,21 +148,33 @@ class MultiTaskTrainer:
             images = images.to(self.device, non_blocking=True)
             seg_targets = seg_targets.to(self.device, non_blocking=True)
 
+
             # Model forward pass
             outputs = self.model(images)
 
             # Compute losses
             seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
 
-            # Detection loss (simplified)
+            # Detection loss (multi-anchor format)
             det_pred = outputs['detection']
-            det_cls_loss = nn.BCEWithLogitsLoss()(
+            # det_pred: cls_logits [B, 49, 20], bbox_pred [B, 49, 4]
+            # det_targets: cls_labels [B, 49, 20], bbox_targets [B, 49, 4], objectness [B, 49]
+            
+            objectness = det_targets['objectness'].to(self.device)  # [B, 49]
+            num_pos = objectness.sum().clamp(min=1.0)  # Avoid division by zero
+            
+            # Classification loss (only on positive anchors)
+            det_cls_loss = nn.BCEWithLogitsLoss(reduction='none')(
                 det_pred['cls_logits'],
                 det_targets['cls_labels'].to(self.device)
-            )
+            )  # [B, 49, 20]
+            det_cls_loss = (det_cls_loss.mean(dim=-1) * objectness).sum() / num_pos
+            
+            # Bbox regression loss (only on positive anchors)
+            bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])  # [B, 49, 4]
             det_bbox_loss = self.det_loss_fn(
-                det_pred['bbox_pred'],
-                det_targets['bbox_targets'].to(self.device)
+                det_pred['bbox_pred'] * bbox_mask,
+                det_targets['bbox_targets'].to(self.device) * bbox_mask
             )
 
             # Combined loss
@@ -214,13 +226,19 @@ class MultiTaskTrainer:
                 seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
 
                 det_pred = outputs['detection']
-                det_cls_loss = nn.BCEWithLogitsLoss()(
+                objectness = det_targets['objectness'].to(self.device)
+                num_pos = objectness.sum().clamp(min=1.0)
+                
+                det_cls_loss = nn.BCEWithLogitsLoss(reduction='none')(
                     det_pred['cls_logits'],
                     det_targets['cls_labels'].to(self.device)
                 )
+                det_cls_loss = (det_cls_loss.mean(dim=-1) * objectness).sum() / num_pos
+                
+                bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])
                 det_bbox_loss = self.det_loss_fn(
-                    det_pred['bbox_pred'],
-                    det_targets['bbox_targets'].to(self.device)
+                    det_pred['bbox_pred'] * bbox_mask,
+                    det_targets['bbox_targets'].to(self.device) * bbox_mask
                 )
 
                 # Combined loss
@@ -244,14 +262,14 @@ class MultiTaskTrainer:
 
             # Log predictions (using last batch)
             # We use the convenience function from aim_logger
-            from .aim_logger import log_predictions
-            log_predictions(
-                images, 
-                outputs['segmentation'], 
-                seg_targets, 
-                epoch, 
-                num_samples=4
-            )
+            # from .aim_logger import log_predictions
+            # log_predictions(
+            #     images, 
+            #     outputs['segmentation'], 
+            #     seg_targets, 
+            #     epoch, 
+            #     num_samples=4
+            # )
 
         # Compute final metrics
         metrics = self.evaluator.compute()

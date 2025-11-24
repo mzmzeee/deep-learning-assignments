@@ -63,51 +63,58 @@ class UNetDecoder(nn.Module):
 
 
 class SimpleDetectionHead(nn.Module):
-    """Simple detection head: predicts class scores and bbox offsets."""
+    """Simple detection head: predicts class scores and bbox offsets per anchor."""
 
-    def __init__(self, backbone_channels, num_classes=20, activation="relu"):
+    def __init__(self, backbone_channels, num_classes=20, activation ="relu"):
         super().__init__()
         self.num_classes = num_classes
+        
+        # Use 7x7 grid of anchor points for dense predictions
+        self.grid_size = 7
+        self.num_anchors = self.grid_size * self.grid_size  # 49 anchors
 
         # Shared feature extraction
         self.conv = ConvBlock(backbone_channels, 256, activation, dropout_rate=0.0)
 
-        # Classification and regression branches
-        self.cls_head = nn.Conv2d(256, num_classes * 1, kernel_size=1)  # Simple per-pixel classification
-        self.reg_head = nn.Conv2d(256, 4 * 1, kernel_size=1)  # Per-pixel bbox regression
+        # Classification and regression branches (per-anchor predictions)
+        self.cls_head = nn.Conv2d(256, num_classes, kernel_size=1)  # [B, 20, H, W]
+        self.reg_head = nn.Conv2d(256, 4, kernel_size=1)  # [B, 4, H, W]
 
         # Anchor generation (simplified grid)
         self.anchors = self._create_anchors()
 
     def _create_anchors(self):
-        """Create simple anchor boxes."""
-        """Create simple anchor boxes."""
-        # 5x5 grid of anchors
-        grid_size = 5
+        """Create simple anchor boxes on a grid."""
+        grid_size = self.grid_size
         anchors = []
         for i in range(grid_size):
             for j in range(grid_size):
-                # Center coordinates
+                # Center coordinates (normalized 0-1)
                 cx = (j + 0.5) / grid_size
                 cy = (i + 0.5) / grid_size
-                # Fixed size anchors (scaled for 224x224 input)
-                anchors.append([cx, cy, 0.2, 0.2])
-        return torch.tensor(anchors).float().unsqueeze(0)  # [1, 25, 4]
+                # Fixed size anchors (normalized)
+                anchors.append([cx, cy, 0.14, 0.14])  # 14% of image size
+        return torch.tensor(anchors).float()  # [49, 4]
 
     def forward(self, features):
-        x = features['c5']
-        x = self.conv(x)
+        x = features['c5']  # [B, C, H, W]
+        x = self.conv(x)  # [B, 256, H, W]
 
-        # Global pooling for detection
-        x = nn.AdaptiveAvgPool2d(1)(x)
+        # Spatially adaptive pooling to grid_size x grid_size
+        x = nn.AdaptiveAvgPool2d(self.grid_size)(x)  # [B, 256, 7, 7]
 
-        cls_logits = self.cls_head(x).squeeze(-1).squeeze(-1)  # [B, num_classes]
-        bbox_pred = self.reg_head(x).squeeze(-1).squeeze(-1)  # [B, 4]
+        cls_logits = self.cls_head(x)  # [B, 20, 7, 7]
+        bbox_pred = self.reg_head(x)  # [B, 4, 7, 7]
+
+        # Reshape to [B, num_anchors, ...]
+        B = x.size(0)
+        cls_logits = cls_logits.permute(0, 2, 3, 1).contiguous().view(B, self.num_anchors, self.num_classes)
+        bbox_pred = bbox_pred.permute(0, 2, 3, 1).contiguous().view(B, self.num_anchors, 4)
 
         return {
-            'cls_logits': cls_logits,
-            'bbox_pred': bbox_pred,
-            'anchors': self.anchors.to(x.device)
+            'cls_logits': cls_logits,  # [B, 49, 20]
+            'bbox_pred': bbox_pred,  # [B, 49, 4]
+            'anchors': self.anchors.unsqueeze(0).repeat(B, 1, 1).to(x.device)  # [B, 49, 4]
         }
 
 

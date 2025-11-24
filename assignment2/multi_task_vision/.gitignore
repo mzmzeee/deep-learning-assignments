@@ -121,3 +121,8 @@ figure/
 quesetions.py
 ee569_outputs/
 Full_MNIST.py
+
+# Experiment outputs
+checkpoints/
+aim_logs/
+results/
