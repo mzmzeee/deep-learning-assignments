@@ -9,12 +9,105 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import torch
+import math
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision.datasets import VOCSegmentation
 
 from .transforms import get_transform
 from .voc_classes import VOC_NAME_TO_IDX
+
+def compute_iou_cxcywh(boxes1, boxes2):
+    """
+    Compute IoU between two sets of boxes in (cx, cy, w, h) format.
+    
+    Args:
+        boxes1: [N, 4]
+        boxes2: [M, 4]
+    
+    Returns:
+        iou: [N, M]
+    """
+    # Convert to (x1, y1, x2, y2)
+    boxes1_x1 = boxes1[:, 0] - boxes1[:, 2] / 2
+    boxes1_y1 = boxes1[:, 1] - boxes1[:, 3] / 2
+    boxes1_x2 = boxes1[:, 0] + boxes1[:, 2] / 2
+    boxes1_y2 = boxes1[:, 1] + boxes1[:, 3] / 2
+    
+    boxes2_x1 = boxes2[:, 0] - boxes2[:, 2] / 2
+    boxes2_y1 = boxes2[:, 1] - boxes2[:, 3] / 2
+    boxes2_x2 = boxes2[:, 0] + boxes2[:, 2] / 2
+    boxes2_y2 = boxes2[:, 1] + boxes2[:, 3] / 2
+    
+    # Compute intersection
+    N = boxes1.shape[0]
+    M = boxes2.shape[0]
+    
+    # Broadcast to [N, M]
+    x1 = torch.max(boxes1_x1.unsqueeze(1), boxes2_x1.unsqueeze(0))  # [N, M]
+    y1 = torch.max(boxes1_y1.unsqueeze(1), boxes2_y1.unsqueeze(0))
+    x2 = torch.min(boxes1_x2.unsqueeze(1), boxes2_x2.unsqueeze(0))
+    y2 = torch.min(boxes1_y2.unsqueeze(1), boxes2_y2.unsqueeze(0))
+    
+    intersection = (x2 - x1).clamp(min=0) * (y2 - y1).clamp(min=0)
+    
+    # Compute areas
+    area1 = boxes1[:, 2] * boxes1[:, 3]  # [N]
+    area2 = boxes2[:, 2] * boxes2[:, 3]  # [M]
+    
+    union = area1.unsqueeze(1) + area2.unsqueeze(0) - intersection
+    
+    iou = intersection / (union + 1e-6)
+    return iou
+
+def match_anchors_to_gt(gt_boxes, gt_labels, anchors, pos_thresh=0.5, neg_thresh=0.4):
+    """
+    Match ground truth boxes to anchors based on IoU.
+    
+    Args:
+        gt_boxes: [N_gt, 4] ground truth boxes (cx, cy, w, h) normalized
+        gt_labels: [N_gt] class indices (0-19)
+        anchors: [N_anchors, 4] anchor boxes (cx, cy, w, h)
+        pos_thresh: IoU threshold for positive anchors (0.5)
+        neg_thresh: IoU threshold for negative anchors (0.4)
+    
+    Returns:
+        cls_labels: [N_anchors, 20] one-hot class labels
+        bbox_targets: [N_anchors, 4] regression targets
+        objectness: [N_anchors] 1 for positive, 0 for negative, -1 for ignore
+    """
+    N_anchors = anchors.shape[0]
+    N_gt = gt_boxes.shape[0]
+    
+    # Initialize outputs
+    cls_labels = torch.zeros(N_anchors, 20)
+    bbox_targets = torch.zeros(N_anchors, 4)
+    objectness = torch.zeros(N_anchors) - 1  # -1 = ignore by default
+    
+    if N_gt == 0:
+        objectness[:] = 0  # All negative if no objects
+        return cls_labels, bbox_targets, objectness
+    
+    # Compute IoU between all anchors and all gt boxes
+    ious = compute_iou_cxcywh(anchors, gt_boxes)  # [N_anchors, N_gt]
+    
+    # For each anchor, find best matching GT
+    max_iou, max_idx = ious.max(dim=1)  # [N_anchors]
+    
+    # Assign labels based on IoU thresholds
+    positive_mask = max_iou >= pos_thresh
+    negative_mask = max_iou < neg_thresh
+    
+    # Positive anchors
+    objectness[positive_mask] = 1
+    matched_gt_labels = gt_labels[max_idx[positive_mask]]
+    cls_labels[positive_mask, matched_gt_labels] = 1  # One-hot encoding
+    bbox_targets[positive_mask] = gt_boxes[max_idx[positive_mask]]
+    
+    # Negative anchors
+    objectness[negative_mask] = 0
+    
+    return cls_labels, bbox_targets, objectness
 
 class VOCSegDetDataset(Dataset):
     """Combined VOC dataset for segmentation and detection."""
@@ -191,38 +284,34 @@ class VOCSegDetDataset(Dataset):
 
         mask = mask_tensor
 
-        # Create detection targets for 49 anchors (7x7 grid)
-        num_anchors = 49
+        # Create detection targets (CPU matching for 49 anchors - fast enough)
+        if len(boxes) > 0:
+            gt_boxes_tensor = torch.tensor(boxes, dtype=torch.float32)
+            gt_labels_tensor = torch.tensor(cls_indices, dtype=torch.long)
+            
+            # Generate anchors (49 for SimpleDetectionHead)
+            anchors = self._get_simple_anchors()
+            
+            # Match anchors to ground truth
+            det_cls_labels, det_bbox_targets, det_objectness = match_anchors_to_gt(
+                gt_boxes_tensor, gt_labels_tensor, anchors
+            )
+        else:
+            # No objects in image
+            det_cls_labels = torch.zeros(49, 20)
+            det_bbox_targets = torch.zeros(49, 4)
+            det_objectness = torch.zeros(49)
+
         det_target = {
-            'cls_labels': torch.zeros(num_anchors, 20),  # [49, 20] multi-label per anchor
-            'bbox_targets': torch.zeros(num_anchors, 4),  # [49, 4] bbox per anchor
-            'objectness': torch.zeros(num_anchors)  # [49] 1=object, 0=background
+            'cls_labels': det_cls_labels,
+            'bbox_targets': det_bbox_targets,
+            'objectness': det_objectness
         }
 
-        # If we have boxes, assign them to anchors based on IoU
-        if boxes is not None and len(boxes) > 0:
-            # Get anchor positions (7x7 grid)
-            anchors = self._get_anchor_boxes()  # [49, 4] in normalized coords
-            
-            # For each ground truth box, find best matching anchor
-            for box, cls_idx in zip(boxes, cls_indices):
-                box_tensor = torch.tensor(box, dtype=torch.float32)
-                
-                # Compute IoU between this box and all anchors
-                ious = self._compute_iou(box_tensor.unsqueeze(0), anchors)  # [49]
-                
-                # Assign to anchor with highest IoU (if IoU > 0.05)
-                best_iou, best_idx = ious.max(0)
-                if best_iou > 0.05:
-                    det_target['objectness'][best_idx] = 1.0
-                    det_target['bbox_targets'][best_idx] = box_tensor
-                    if 0 <= cls_idx < 20:
-                        det_target['cls_labels'][best_idx, cls_idx] = 1.0
-
         return image, mask, det_target
-
-    def _get_anchor_boxes(self):
-        """Get anchor boxes matching the detection head (7x7 grid)."""
+    
+    def _get_simple_anchors(self):
+        """Generate simple 7x7 grid anchors"""
         grid_size = 7
         anchors = []
         for i in range(grid_size):
@@ -231,6 +320,30 @@ class VOCSegDetDataset(Dataset):
                 cy = (i + 0.5) / grid_size
                 anchors.append([cx, cy, 0.14, 0.14])
         return torch.tensor(anchors, dtype=torch.float32)
+
+    def _get_anchors(self):
+        """Generate anchors matching the detection head"""
+        anchor_scales = [0.1, 0.2, 0.4]
+        anchor_ratios = [0.5, 1.0, 2.0]
+        grid_sizes = [8, 16, 32]
+        
+        anchors = []
+        for grid_size in grid_sizes:
+            for i in range(grid_size):
+                for j in range(grid_size):
+                    cx = (j + 0.5) / grid_size
+                    cy = (i + 0.5) / grid_size
+                    for scale in anchor_scales:
+                        for ratio in anchor_ratios:
+                            w = scale * math.sqrt(ratio)
+                            h = scale / math.sqrt(ratio)
+                            anchors.append([cx, cy, w, h])
+        
+        return torch.tensor(anchors, dtype=torch.float32)
+
+    def _get_num_anchors(self):
+        """Calculate total number of anchors"""
+        return sum(g * g * 9 for g in [8, 16, 32])  # 8²×9 + 16²×9 + 32²×9
 
     def _compute_iou(self, box1, box2):
         """Compute IoU between box1 [1,4] and box2 [N,4] in format [cx,cy,w,h]."""
@@ -259,6 +372,17 @@ class VOCSegDetDataset(Dataset):
         union_area = box1_area + box2_area - inter_area
         
         return inter_area / (union_area + 1e-6)
+
+def collate_det_fn(batch):
+    """Custom collate function to handle variable number of objects per image."""
+    images, masks, det_boxes_list, det_labels_list = zip(*batch)
+    
+    # Stack images and masks normally
+    images = torch.stack(images)
+    masks = torch.stack(masks)
+    
+    # Return as lists (will be processed on GPU in trainer)
+    return images, masks, list(det_boxes_list), list(det_labels_list)
 
 def get_dataloaders(config):
     """Create train and validation dataloaders."""
@@ -293,7 +417,8 @@ def get_dataloaders(config):
         batch_size=train_cfg["batch_size"],
         shuffle=True,
         num_workers=4,
-        pin_memory=True
+        pin_memory=True,
+        collate_fn=collate_det_fn
     )
 
     val_loader = DataLoader(
@@ -301,7 +426,8 @@ def get_dataloaders(config):
         batch_size=train_cfg["batch_size"],
         shuffle=False,
         num_workers=4,
-        pin_memory=True
+        pin_memory=True,
+        collate_fn=collate_det_fn
     )
 
     return train_loader, val_loader

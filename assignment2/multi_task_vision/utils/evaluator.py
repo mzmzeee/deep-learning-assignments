@@ -121,8 +121,10 @@ class DetectionMetrics:
             target = target[sorted_indices]
 
             # Compute precision-recall
-            tp = (pred > 0.5) & (target == 1)
-            fp = (pred > 0.5) & (target == 0)
+            # Compute precision-recall
+            # In a ranked list, we consider each item as a "prediction" at that rank
+            tp = (target == 1)
+            fp = (target == 0)
 
             tp_cumsum = tp.float().cumsum(0)
             fp_cumsum = fp.float().cumsum(0)

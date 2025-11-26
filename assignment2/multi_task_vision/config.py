@@ -31,6 +31,9 @@ CONFIG = {
         "weight_decay": 0.0,             # Range: 0.0 to 1e-2 (L2 regularization)
         "loss_weights": {"seg": 1.0, "det": 1.0},  # Multi-task loss balancing
 
+        # Class weights for segmentation (0.1 for background, 1.0 for others)
+        "seg_class_weights": [0.1] + [1.0] * 20,
+
         # Loss function choices
         "seg_loss": "cross_entropy",     # Options: "cross_entropy", "focal"
         "det_loss": "smooth_l1",         # Options: "smooth_l1", "ciou"

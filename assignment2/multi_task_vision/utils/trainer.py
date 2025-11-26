@@ -157,52 +157,64 @@ class MultiTaskTrainer:
             seg_targets = seg_targets.to(self.device, non_blocking=True)
 
 
-            # Model forward pass
+            # Model forward passs
             outputs = self.model(images)
 
             # Compute losses
             seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
 
-            # Detection loss (multi-anchor format)
+            # Detection loss
             det_pred = outputs['detection']
-            # det_pred: cls_logits [B, 49, 20], bbox_pred [B, 49, 4]
-            # det_targets: cls_labels [B, 49, 20], bbox_targets [B, 49, 4], objectness [B, 49]
             
-            objectness = det_targets['objectness'].to(self.device)  # [B, 49]
-            num_pos = objectness.sum().clamp(min=1.0)  # Avoid division by zero
+            # Get targets from batch
+            det_cls_labels = det_targets['cls_labels'].to(self.device)
+            det_bbox_targets = det_targets['bbox_targets'].to(self.device)
+            det_objectness = det_targets['objectness'].to(self.device)
             
-            # Classification loss (only on positive anchors)
-            det_cls_loss = nn.BCEWithLogitsLoss(reduction='none')(
-                det_pred['cls_logits'],
-                det_targets['cls_labels'].to(self.device)
-            )  # [B, 49, 20]
-            det_cls_loss = (det_cls_loss.mean(dim=-1) * objectness).sum() / num_pos
+            num_pos = det_objectness.sum().clamp(min=1.0)
+            
+            # Classification loss: Focal Loss for class imbalance
+            cls_logits_flat = det_pred['cls_logits'].view(-1, 20)
+            cls_labels_flat = det_cls_labels.view(-1, 20)
+            
+            alpha = 0.25
+            gamma = 2.0
+            bce_loss = nn.functional.binary_cross_entropy_with_logits(
+                cls_logits_flat, cls_labels_flat, reduction='none'
+            )
+            p_t = torch.exp(-bce_loss)
+            focal_weight = alpha * (1 - p_t) ** gamma
+            det_cls_loss = (focal_weight * bce_loss).mean()
             
             # Bbox regression loss (only on positive anchors)
-            bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])  # [B, 49, 4]
-            
-            pred_boxes = det_pred['bbox_pred'] * bbox_mask
-            target_boxes = det_targets['bbox_targets'].to(self.device) * bbox_mask
-            
-            # Convert [cx, cy, w, h] to [x1, y1, x2, y2] for CIoU loss
-            if isinstance(self.det_loss_fn, CIoULoss):
-                # Pred
-                p_cx, p_cy, p_w, p_h = pred_boxes.unbind(-1)
-                p_x1 = p_cx - 0.5 * p_w
-                p_y1 = p_cy - 0.5 * p_h
-                p_x2 = p_cx + 0.5 * p_w
-                p_y2 = p_cy + 0.5 * p_h
-                pred_boxes = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+            positive_mask = det_objectness > 0
+            if positive_mask.sum() > 0:
+                pred_boxes_flat = det_pred['bbox_pred'].view(-1, 4)
+                target_boxes_flat = det_bbox_targets.view(-1, 4)
                 
-                # Target
-                t_cx, t_cy, t_w, t_h = target_boxes.unbind(-1)
-                t_x1 = t_cx - 0.5 * t_w
-                t_y1 = t_cy - 0.5 * t_h
-                t_x2 = t_cx + 0.5 * t_w
-                t_y2 = t_cy + 0.5 * t_h
-                target_boxes = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
+                positive_mask_flat = positive_mask.view(-1)
+                
+                pred_boxes_pos = pred_boxes_flat[positive_mask_flat]
+                target_boxes_pos = target_boxes_flat[positive_mask_flat]
+                
+                if isinstance(self.det_loss_fn, CIoULoss):
+                    p_cx, p_cy, p_w, p_h = pred_boxes_pos.unbind(-1)
+                    p_x1 = p_cx - 0.5 * p_w
+                    p_y1 = p_cy - 0.5 * p_h
+                    p_x2 = p_cx + 0.5 * p_w
+                    p_y2 = p_cy + 0.5 * p_h
+                    pred_boxes_pos = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+                    
+                    t_cx, t_cy, t_w, t_h = target_boxes_pos.unbind(-1)
+                    t_x1 = t_cx - 0.5 * t_w
+                    t_y1 = t_cy - 0.5 * t_h
+                    t_x2 = t_cx + 0.5 * t_w
+                    t_y2 = t_cy + 0.5 * t_h
+                    target_boxes_pos = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
 
-            det_bbox_loss = self.det_loss_fn(pred_boxes, target_boxes)
+                det_bbox_loss = self.det_loss_fn(pred_boxes_pos, target_boxes_pos)
+            else:
+                det_bbox_loss = torch.tensor(0.0, device=self.device)
 
             # Combined loss
             loss_weights = self.config["training"]["loss_weights"]
@@ -214,6 +226,10 @@ class MultiTaskTrainer:
             # Backward pass
             self.optimizer.zero_grad()
             total_batch_loss.backward()
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=10.0)
+            
             self.optimizer.step()
 
             total_loss += total_batch_loss.item()
@@ -222,7 +238,8 @@ class MultiTaskTrainer:
             pbar.set_postfix({
                 "Loss": f"{total_batch_loss.item():.4f}",
                 "Seg": f"{seg_loss.item():.4f}",
-                "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
+                "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}",
+                "NumPos": f"{num_pos.item():.1f}"
             })
 
             # Log system stats every 100 batches
@@ -253,39 +270,56 @@ class MultiTaskTrainer:
                 seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
 
                 det_pred = outputs['detection']
-                objectness = det_targets['objectness'].to(self.device)
-                num_pos = objectness.sum().clamp(min=1.0)
                 
-                det_cls_loss = nn.BCEWithLogitsLoss(reduction='none')(
-                    det_pred['cls_logits'],
-                    det_targets['cls_labels'].to(self.device)
+                # Get targets from batch
+                det_cls_labels = det_targets['cls_labels'].to(self.device)
+                det_bbox_targets = det_targets['bbox_targets'].to(self.device)
+                det_objectness = det_targets['objectness'].to(self.device)
+                
+                num_pos = det_objectness.sum().clamp(min=1.0)
+                
+                # Classification loss: Focal Loss (same as training)
+                cls_logits_flat = det_pred['cls_logits'].view(-1, 20)
+                cls_labels_flat = det_cls_labels.view(-1, 20)
+                
+                alpha = 0.25
+                gamma = 2.0
+                bce_loss = nn.functional.binary_cross_entropy_with_logits(
+                    cls_logits_flat, cls_labels_flat, reduction='none'
                 )
-                det_cls_loss = (det_cls_loss.mean(dim=-1) * objectness).sum() / num_pos
+                p_t = torch.exp(-bce_loss)
+                focal_weight = alpha * (1 - p_t) ** gamma
+                det_cls_loss = (focal_weight * bce_loss).mean()
                 
-                bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])
-                
-                pred_boxes = det_pred['bbox_pred'] * bbox_mask
-                target_boxes = det_targets['bbox_targets'].to(self.device) * bbox_mask
-                
-                # Convert [cx, cy, w, h] to [x1, y1, x2, y2] for CIoU loss
-                if isinstance(self.det_loss_fn, CIoULoss):
-                    # Pred
-                    p_cx, p_cy, p_w, p_h = pred_boxes.unbind(-1)
-                    p_x1 = p_cx - 0.5 * p_w
-                    p_y1 = p_cy - 0.5 * p_h
-                    p_x2 = p_cx + 0.5 * p_w
-                    p_y2 = p_cy + 0.5 * p_h
-                    pred_boxes = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+                # Bbox regression loss
+                positive_mask = det_objectness > 0
+                if positive_mask.sum() > 0:
+                    pred_boxes_flat = det_pred['bbox_pred'].view(-1, 4)
+                    target_boxes_flat = det_bbox_targets.view(-1, 4)
                     
-                    # Target
-                    t_cx, t_cy, t_w, t_h = target_boxes.unbind(-1)
-                    t_x1 = t_cx - 0.5 * t_w
-                    t_y1 = t_cy - 0.5 * t_h
-                    t_x2 = t_cx + 0.5 * t_w
-                    t_y2 = t_cy + 0.5 * t_h
-                    target_boxes = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
+                    positive_mask_flat = positive_mask.view(-1)
+                    
+                    pred_boxes_pos = pred_boxes_flat[positive_mask_flat]
+                    target_boxes_pos = target_boxes_flat[positive_mask_flat]
+                    
+                    if isinstance(self.det_loss_fn, CIoULoss):
+                        p_cx, p_cy, p_w, p_h = pred_boxes_pos.unbind(-1)
+                        p_x1 = p_cx - 0.5 * p_w
+                        p_y1 = p_cy - 0.5 * p_h
+                        p_x2 = p_cx + 0.5 * p_w
+                        p_y2 = p_cy + 0.5 * p_h
+                        pred_boxes_pos = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+                        
+                        t_cx, t_cy, t_w, t_h = target_boxes_pos.unbind(-1)
+                        t_x1 = t_cx - 0.5 * t_w
+                        t_y1 = t_cy - 0.5 * t_h
+                        t_x2 = t_cx + 0.5 * t_w
+                        t_y2 = t_cy + 0.5 * t_h
+                        target_boxes_pos = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
 
-                det_bbox_loss = self.det_loss_fn(pred_boxes, target_boxes)
+                    det_bbox_loss = self.det_loss_fn(pred_boxes_pos, target_boxes_pos)
+                else:
+                    det_bbox_loss = torch.tensor(0.0, device=self.device)
 
                 # Combined loss
                 loss_weights = self.config["training"]["loss_weights"]
@@ -316,7 +350,7 @@ class MultiTaskTrainer:
                 outputs['detection'],
                 det_targets,
                 epoch, 
-                num_samples=4
+                num_samples=5
             )
 
         # Compute final metrics

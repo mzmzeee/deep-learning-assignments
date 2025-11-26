@@ -102,7 +102,7 @@ class SegmentationDetectionTransform:
                 if mask is not None:
                     mask = TF.hflip(mask.unsqueeze(0)).squeeze(0)
                 if boxes is not None:
-                    boxes[:, [0, 2]] = 1.0 - boxes[:, [2, 0]]  # Flip x coordinates
+                    boxes[:, 0] = 1.0 - boxes[:, 0]  # Flip cx
 
         # Apply preprocessing (normalize/standardize)
         image = self.preprocess(image)

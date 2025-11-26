@@ -31,7 +31,9 @@ except ImportError:
 import torch
 import os
 import numpy as np
+import numpy as np
 from datetime import datetime
+from datasets.voc_classes import VOC_CLASS_NAMES
 
 
 class AimLogger:
@@ -275,8 +277,9 @@ class AimLogger:
                     # Get class (find which class has label=1)
                     cls_label = cls_targets[i].argmax().item() if cls_targets[i].sum() > 0 else -1
                     if cls_label >= 0:
+                        class_name = VOC_CLASS_NAMES[cls_label] if cls_label < len(VOC_CLASS_NAMES) else str(cls_label)
                         axes[3].text(
-                            x, y, f"GT: {cls_label}", 
+                            x, y, f"GT: {class_name}", 
                             color='white', fontsize=6,
                             bbox=dict(facecolor='green', alpha=0.7, pad=1)
                         )
@@ -324,8 +327,9 @@ class AimLogger:
                     axes[3].add_patch(rect)
                     
                     # Draw label
+                    class_name = VOC_CLASS_NAMES[cls.item()] if cls.item() < len(VOC_CLASS_NAMES) else str(cls.item())
                     axes[3].text(
-                        x, y - 5, f"{cls.item()}: {score.item():.2f}",
+                        x, y - 5, f"{class_name}: {score.item():.2f}",
                         color='white', fontsize=6,
                         bbox=dict(facecolor='red', alpha=0.7, pad=1)
                     )

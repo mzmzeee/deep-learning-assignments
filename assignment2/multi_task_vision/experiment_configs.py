@@ -36,14 +36,22 @@ EXPERIMENT_CONFIGS.update({
 # =============================================================================
 EXPERIMENT_CONFIGS.update({
     "optimal_01_golden_standard": {
-        "system": {"epochs": 35},
-        "model": {"backbone": "resnet34", "activation": "relu", "init_scheme": "kaiming", "init_backbone": True, "dropout_rate": 0.3},
+        "system": {"epochs": 40},
+        "model": {
+            "backbone": "resnet34", 
+            "activation": "relu", 
+            "init_scheme": "kaiming", 
+            "init_backbone": True, 
+            "dropout_rate": 0.3,
+            "detection_head": "fpn"
+        },
         "training": {
             "lr": 1e-3, 
             "batch_size": 16, 
             "weight_decay": 1e-4, 
-            "seg_loss": "cross_entropy", 
+            "seg_loss": "focal", 
             "det_loss": "ciou",
+            "loss_weights": {"seg": 2.0, "det": 1.0},
             "seg_class_weights": [0.1] + [1.0] * 20  # Down-weight background (class 0)
         },
         "data": {"preprocessing": "standardize", "augmentation_level": "heavy"},
@@ -111,6 +119,28 @@ EXPERIMENT_CONFIGS.update({
         "model": {"backbone": "resnet18", "init_backbone": True},
         "training": {"lr": 5e-4, "weight_decay": 1e-4},
         "data": {"augmentation_level": "basic"}
+    },
+    "smoke_test": {
+        "system": {"epochs": 2},
+        "model": {
+            "backbone": "resnet34", 
+            "activation": "relu", 
+            "init_scheme": "kaiming", 
+            "init_backbone": True, 
+            "dropout_rate": 0.3,
+            "detection_head": "fpn"
+        },
+        "training": {
+            "lr": 1e-3, 
+            "batch_size": 16, 
+            "weight_decay": 1e-4, 
+            "seg_loss": "focal", 
+            "det_loss": "ciou",
+            "loss_weights": {"seg": 2.0, "det": 1.0},
+            "seg_class_weights": [0.1] + [1.0] * 20
+        },
+        "data": {"preprocessing": "standardize", "augmentation_level": "heavy"},
+        "regularization": {"dropout_enabled": True}
     }
 })
 
