@@ -20,6 +20,7 @@ import torch
 import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from pathlib import Path
 
 from torch.distributions import transforms
@@ -28,23 +29,33 @@ from config import CONFIG
 from models.multi_task_cnn import MultiTaskCNN
 from datasets.voc_loader import VOCSegDetDataset
 from datasets.transforms import get_transform
+from datasets.voc_classes import VOC_CLASS_NAMES
 
 
 def load_model(checkpoint_path, config, device):
     """Load trained model from checkpoint."""
     print(f"Loading model from {checkpoint_path}")
 
+    # Load checkpoint first to get config
+    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+
+    # Use config from checkpoint if available to ensure architecture matches
+    if "config" in checkpoint:
+        print("✓ Using configuration found in checkpoint")
+        config = checkpoint["config"]
+    else:
+        print("⚠ No config in checkpoint, using provided default")
+
     # Create model
     model = MultiTaskCNN(config)
     model.to(device)
     model.eval()
 
-    # Load checkpoint
-    checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
     model.load_state_dict(checkpoint["model_state_dict"])
 
     print(f"✓ Loaded model from epoch {checkpoint['epoch']}")
-    print(f"✓ Best mIoU: {checkpoint['metrics']['miou']:.4f}")
+    if "metrics" in checkpoint and "miou" in checkpoint["metrics"]:
+        print(f"✓ Best mIoU: {checkpoint['metrics']['miou']:.4f}")
 
     return model
 
@@ -117,12 +128,60 @@ def visualize_predictions(images, seg_preds, det_preds, seg_targets=None, save_p
         plt.colorbar(conf_im, ax=axes[i, 2], fraction=0.046, pad=0.04)
 
         # Detection prediction
-        det_class = det_probs.argmax().item()
-        det_conf = det_probs.max().item()
-        det_text = f"Det: cls={det_class}\nconf={det_conf:.2f}"
         axes[i, 3].imshow(img_np)
-        axes[i, 3].set_title(det_text, fontsize=8)
         axes[i, 3].axis('off')
+
+        # Draw boxes for detections with confidence > threshold
+        threshold = 0.3
+        anchor_scores, anchor_classes = det_probs.max(dim=1)  # [49]
+        keep_indices = anchor_scores > threshold
+
+        if keep_indices.any():
+            axes[i, 3].set_title(f"Detections (> {threshold})", fontsize=8)
+            
+            # Clamp boxes to [0, 1] to avoid wild predictions destroying the plot
+            boxes = det_bbox_pred[keep_indices].clamp(0, 1)
+            scores = anchor_scores[keep_indices]
+            classes = anchor_classes[keep_indices]
+            
+            H, W = img_np.shape[:2]
+            
+            for box, cls, score in zip(boxes, classes, scores):
+                cx, cy, w, h = box.tolist()
+                
+                # Convert [cx, cy, w, h] to [x, y, w, h] (top-left)
+                x = (cx - w/2) * W
+                y = (cy - h/2) * H
+                w_px = w * W
+                h_px = h * H
+                
+                # Draw rectangle
+                rect = patches.Rectangle(
+                    (x, y), w_px, h_px, 
+                    linewidth=2, edgecolor='red', facecolor='none'
+                )
+                axes[i, 3].add_patch(rect)
+                
+                # Draw label with VOC class name
+                cls_idx = int(cls.item())
+                if 0 <= cls_idx < len(VOC_CLASS_NAMES):
+                    cls_name = VOC_CLASS_NAMES[cls_idx]
+                else:
+                    cls_name = str(cls_idx)
+                axes[i, 3].text(
+                    x, y, f"{cls_name}: {score.item():.2f}", 
+                    color='white', fontsize=6, 
+                    bbox=dict(facecolor='red', alpha=0.5, pad=0)
+                )
+            
+            # Force axis limits to match image to prevent expansion
+            axes[i, 3].set_xlim(0, W)
+            axes[i, 3].set_ylim(H, 0)
+        else:
+            # Fallback: show best single detection if nothing passes threshold
+            det_class = det_probs.argmax().item()
+            det_conf = det_probs.max().item()
+            axes[i, 3].set_title(f"Best: Cls {det_class} ({det_conf:.2f})", fontsize=8)
 
         # Ground truth or blank
         if seg_targets is not None:

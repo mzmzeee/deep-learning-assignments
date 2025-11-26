@@ -36,8 +36,16 @@ EXPERIMENT_CONFIGS.update({
 # =============================================================================
 EXPERIMENT_CONFIGS.update({
     "optimal_01_golden_standard": {
+        "system": {"epochs": 35},
         "model": {"backbone": "resnet34", "activation": "relu", "init_scheme": "kaiming", "init_backbone": True, "dropout_rate": 0.3},
-        "training": {"lr": 1e-3, "batch_size": 16, "weight_decay": 1e-4, "seg_loss": "focal", "det_loss": "ciou"},
+        "training": {
+            "lr": 1e-3, 
+            "batch_size": 16, 
+            "weight_decay": 1e-4, 
+            "seg_loss": "cross_entropy", 
+            "det_loss": "ciou",
+            "seg_class_weights": [0.1] + [1.0] * 20  # Down-weight background (class 0)
+        },
         "data": {"preprocessing": "standardize", "augmentation_level": "heavy"},
         "regularization": {"dropout_enabled": True}
     },

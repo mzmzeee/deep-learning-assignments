@@ -119,9 +119,17 @@ class MultiTaskTrainer:
     def _get_seg_loss(self):
         """Get segmentation loss function."""
         loss_name = self.config["training"]["seg_loss"]
+        
+        # Check for class weights
+        weight = None
+        if "seg_class_weights" in self.config["training"]:
+            weights_list = self.config["training"]["seg_class_weights"]
+            weight = torch.tensor(weights_list).to(self.device)
+            
         if loss_name == "cross_entropy":
-            return nn.CrossEntropyLoss(ignore_index=255)
+            return nn.CrossEntropyLoss(weight=weight, ignore_index=255)
         elif loss_name == "focal":
+            # Note: FocalLoss implementation here doesn't support class weights directly in this version
             return FocalLoss(ignore_index=255)
         else:
             raise ValueError(f"Unknown seg loss: {loss_name}")
@@ -172,10 +180,29 @@ class MultiTaskTrainer:
             
             # Bbox regression loss (only on positive anchors)
             bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])  # [B, 49, 4]
-            det_bbox_loss = self.det_loss_fn(
-                det_pred['bbox_pred'] * bbox_mask,
-                det_targets['bbox_targets'].to(self.device) * bbox_mask
-            )
+            
+            pred_boxes = det_pred['bbox_pred'] * bbox_mask
+            target_boxes = det_targets['bbox_targets'].to(self.device) * bbox_mask
+            
+            # Convert [cx, cy, w, h] to [x1, y1, x2, y2] for CIoU loss
+            if isinstance(self.det_loss_fn, CIoULoss):
+                # Pred
+                p_cx, p_cy, p_w, p_h = pred_boxes.unbind(-1)
+                p_x1 = p_cx - 0.5 * p_w
+                p_y1 = p_cy - 0.5 * p_h
+                p_x2 = p_cx + 0.5 * p_w
+                p_y2 = p_cy + 0.5 * p_h
+                pred_boxes = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+                
+                # Target
+                t_cx, t_cy, t_w, t_h = target_boxes.unbind(-1)
+                t_x1 = t_cx - 0.5 * t_w
+                t_y1 = t_cy - 0.5 * t_h
+                t_x2 = t_cx + 0.5 * t_w
+                t_y2 = t_cy + 0.5 * t_h
+                target_boxes = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
+
+            det_bbox_loss = self.det_loss_fn(pred_boxes, target_boxes)
 
             # Combined loss
             loss_weights = self.config["training"]["loss_weights"]
@@ -236,10 +263,29 @@ class MultiTaskTrainer:
                 det_cls_loss = (det_cls_loss.mean(dim=-1) * objectness).sum() / num_pos
                 
                 bbox_mask = objectness.unsqueeze(-1).expand_as(det_pred['bbox_pred'])
-                det_bbox_loss = self.det_loss_fn(
-                    det_pred['bbox_pred'] * bbox_mask,
-                    det_targets['bbox_targets'].to(self.device) * bbox_mask
-                )
+                
+                pred_boxes = det_pred['bbox_pred'] * bbox_mask
+                target_boxes = det_targets['bbox_targets'].to(self.device) * bbox_mask
+                
+                # Convert [cx, cy, w, h] to [x1, y1, x2, y2] for CIoU loss
+                if isinstance(self.det_loss_fn, CIoULoss):
+                    # Pred
+                    p_cx, p_cy, p_w, p_h = pred_boxes.unbind(-1)
+                    p_x1 = p_cx - 0.5 * p_w
+                    p_y1 = p_cy - 0.5 * p_h
+                    p_x2 = p_cx + 0.5 * p_w
+                    p_y2 = p_cy + 0.5 * p_h
+                    pred_boxes = torch.stack([p_x1, p_y1, p_x2, p_y2], dim=-1)
+                    
+                    # Target
+                    t_cx, t_cy, t_w, t_h = target_boxes.unbind(-1)
+                    t_x1 = t_cx - 0.5 * t_w
+                    t_y1 = t_cy - 0.5 * t_h
+                    t_x2 = t_cx + 0.5 * t_w
+                    t_y2 = t_cy + 0.5 * t_h
+                    target_boxes = torch.stack([t_x1, t_y1, t_x2, t_y2], dim=-1)
+
+                det_bbox_loss = self.det_loss_fn(pred_boxes, target_boxes)
 
                 # Combined loss
                 loss_weights = self.config["training"]["loss_weights"]
@@ -262,14 +308,16 @@ class MultiTaskTrainer:
 
             # Log predictions (using last batch)
             # We use the convenience function from aim_logger
-            # from .aim_logger import log_predictions
-            # log_predictions(
-            #     images, 
-            #     outputs['segmentation'], 
-            #     seg_targets, 
-            #     epoch, 
-            #     num_samples=4
-            # )
+            from .aim_logger import log_predictions
+            log_predictions(
+                images, 
+                outputs['segmentation'], 
+                seg_targets,
+                outputs['detection'],
+                det_targets,
+                epoch, 
+                num_samples=4
+            )
 
         # Compute final metrics
         metrics = self.evaluator.compute()

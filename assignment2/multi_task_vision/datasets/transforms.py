@@ -78,9 +78,11 @@ class SegmentationDetectionTransform:
             raise ValueError(f"Unknown augmentation level: {level}")
 
     def __call__(self, image, mask=None, boxes=None):
-        """
-        Apply transforms to image and optionally mask and boxes.
-        Returns: image, mask (if provided), boxes (if provided)
+        """Apply transforms to image and optionally mask and boxes.
+
+        ``boxes`` are expected in normalized ``[cx, cy, w, h]`` format. Since
+        resizing keeps coordinates normalized, only horizontal flips need to
+        update them.
         """
         # Convert to tensors first
         image = self.to_tensor(image)

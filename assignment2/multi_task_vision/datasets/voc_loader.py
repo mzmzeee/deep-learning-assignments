@@ -1,16 +1,20 @@
-"""
-Pascal VOC 2012 dataset loader for segmentation and detection.
-Downloads and loads data automatically.
+"""Pascal VOC 2012 dataset loader for segmentation and detection.
+
+This variant uses real VOC detection annotations from XML files instead of
+generating pseudo bounding boxes from segmentation masks.
 """
 
 import os
-import torch
-from torch.utils.data import Dataset, DataLoader
-import torchvision.transforms.functional as TF
-from torchvision.datasets import VOCSegmentation
+import xml.etree.ElementTree as ET
+
 import numpy as np
+import torch
 from PIL import Image
+from torch.utils.data import Dataset, DataLoader
+from torchvision.datasets import VOCSegmentation
+
 from .transforms import get_transform
+from .voc_classes import VOC_NAME_TO_IDX
 
 class VOCSegDetDataset(Dataset):
     """Combined VOC dataset for segmentation and detection."""
@@ -34,15 +38,92 @@ class VOCSegDetDataset(Dataset):
             self.is_mock = True
             self.seg_dataset = None
 
-        # Detection annotations (simplified)
+        # Detection annotations from VOC XML files
         self.det_annotations = self._load_detection_annotations()
 
+    def _get_voc_root(self):
+        """Return the root directory that contains VOCdevkit/VOC2012.
+
+        We expect the structure: ``root/VOCdevkit/VOC2012`` where ``root`` is
+        what was passed to ``VOCSegmentation``.
+        """
+
+        # When using torchvision's VOCSegmentation, images are typically under
+        # root/VOCdevkit/VOC2012/JPEGImages. We mirror that convention here.
+        return os.path.join(self.root, "VOCdevkit", "VOC2012")
+
     def _load_detection_annotations(self):
-        """Load simplified detection annotations."""
-    def _load_detection_annotations(self):
-        """Load simplified detection annotations."""
-        # Using segmentation masks to generate pseudo-bboxes
-        return {}
+        """Load detection annotations from Pascal VOC XML files.
+
+        Builds a mapping from image id (e.g. "2007_000027") to a list of
+        objects, each represented as a tuple ``(cls_idx, (xmin, ymin, xmax,
+        ymax))`` in absolute pixel coordinates.
+        """
+
+        if self.is_mock:
+            return {}
+
+        voc_root = self._get_voc_root()
+        ann_dir = os.path.join(voc_root, "Annotations")
+
+        if not os.path.isdir(ann_dir):
+            print(f"WARNING: VOC Annotations directory not found at {ann_dir}. "
+                  "Detection targets will be empty.")
+            return {}
+
+        det_annotations = {}
+
+        # VOCSegmentation keeps a list of image paths in ``self.images``.
+        # Derive the image id from the image filename stem so that it matches
+        # XML names in the Annotations directory.
+        for img_path in self.seg_dataset.images:
+            img_filename = os.path.basename(img_path)
+            img_id, _ = os.path.splitext(img_filename)
+
+            xml_path = os.path.join(ann_dir, img_id + ".xml")
+            if not os.path.isfile(xml_path):
+                # No detection annotation for this image
+                continue
+
+            objects = []
+            try:
+                tree = ET.parse(xml_path)
+                root = tree.getroot()
+            except ET.ParseError:
+                continue
+
+            for obj in root.findall("object"):
+                name = obj.findtext("name")
+                if name is None:
+                    continue
+
+                # Optionally skip difficult objects
+                difficult = obj.findtext("difficult")
+                if difficult is not None and difficult.strip() == "1":
+                    continue
+
+                if name not in VOC_NAME_TO_IDX:
+                    continue
+
+                cls_idx = VOC_NAME_TO_IDX[name]
+                bbox = obj.find("bndbox")
+                if bbox is None:
+                    continue
+
+                try:
+                    xmin = float(bbox.findtext("xmin"))
+                    ymin = float(bbox.findtext("ymin"))
+                    xmax = float(bbox.findtext("xmax"))
+                    ymax = float(bbox.findtext("ymax"))
+                except (TypeError, ValueError):
+                    continue
+
+                objects.append((cls_idx, (xmin, ymin, xmax, ymax)))
+
+            if objects:
+                det_annotations[img_id] = objects
+
+        return det_annotations
 
     def __len__(self):
         if self.is_mock:
@@ -54,18 +135,61 @@ class VOCSegDetDataset(Dataset):
             # Generate synthetic data
             image = Image.fromarray(np.random.randint(0, 255, (256, 256, 3), dtype=np.uint8))
             mask = Image.fromarray(np.random.randint(0, 21, (256, 256), dtype=np.uint8))
+            mask_np = np.array(mask)
+            boxes = np.zeros((0, 4), dtype=np.float32)
+            cls_indices = np.zeros((0,), dtype=np.int64)
         else:
             image, mask = self.seg_dataset[idx]
+            mask_np = np.array(mask)
 
-        # Convert mask to tensor
-        mask = np.array(mask)
+            # Derive image id from underlying VOCSegmentation image path
+            img_path = self.seg_dataset.images[idx]
+            img_filename = os.path.basename(img_path)
+            img_id, _ = os.path.splitext(img_filename)
 
-        # Generate pseudo detection boxes from mask instances
-        boxes = self._generate_pseudo_boxes(mask)
+            # Load detection objects for this image id (if any)
+            objects = self.det_annotations.get(img_id, [])
+
+            # Convert absolute corner boxes to normalized center format
+            w, h = image.size
+            norm_boxes = []
+            cls_indices = []
+            for cls_idx, (xmin, ymin, xmax, ymax) in objects:
+                # VOC uses 1-based inclusive pixel coordinates; convert to 0-based
+                # and then to normalized [cx, cy, w, h]
+                xmin0 = max(0.0, xmin - 1.0)
+                ymin0 = max(0.0, ymin - 1.0)
+                xmax0 = min(float(w), xmax - 1.0)
+                ymax0 = min(float(h), ymax - 1.0)
+
+                bw = max(0.0, xmax0 - xmin0)
+                bh = max(0.0, ymax0 - ymin0)
+                if bw <= 1.0 or bh <= 1.0:
+                    continue
+
+                cx = (xmin0 + xmax0) / 2.0 / float(w)
+                cy = (ymin0 + ymax0) / 2.0 / float(h)
+                nw = bw / float(w)
+                nh = bh / float(h)
+
+                norm_boxes.append([cx, cy, nw, nh])
+                cls_indices.append(cls_idx)
+
+            if norm_boxes:
+                boxes = np.array(norm_boxes, dtype=np.float32)
+                cls_indices = np.array(cls_indices, dtype=np.int64)
+            else:
+                boxes = np.zeros((0, 4), dtype=np.float32)
+                cls_indices = np.zeros((0,), dtype=np.int64)
 
         # Apply transforms
         if self.transform:
-            image, mask, boxes = self.transform(image, mask, boxes)
+            image, mask_tensor, boxes = self.transform(image, mask_np, boxes)
+        else:
+            from torch import from_numpy
+            mask_tensor = from_numpy(mask_np).long()
+
+        mask = mask_tensor
 
         # Create detection targets for 49 anchors (7x7 grid)
         num_anchors = 49
@@ -76,12 +200,12 @@ class VOCSegDetDataset(Dataset):
         }
 
         # If we have boxes, assign them to anchors based on IoU
-        if len(boxes) > 0:
+        if boxes is not None and len(boxes) > 0:
             # Get anchor positions (7x7 grid)
             anchors = self._get_anchor_boxes()  # [49, 4] in normalized coords
             
             # For each ground truth box, find best matching anchor
-            for box in boxes:
+            for box, cls_idx in zip(boxes, cls_indices):
                 box_tensor = torch.tensor(box, dtype=torch.float32)
                 
                 # Compute IoU between this box and all anchors
@@ -92,21 +216,8 @@ class VOCSegDetDataset(Dataset):
                 if best_iou > 0.05:
                     det_target['objectness'][best_idx] = 1.0
                     det_target['bbox_targets'][best_idx] = box_tensor
-                    
-                    # Get class from mask at box center (cx, cy format)
-                    if isinstance(mask, torch.Tensor):
-                        H, W = mask.shape[-2], mask.shape[-1]
-                        cy = int(box[1] * H)
-                        cx = int(box[0] * W)
-                        cls_id = mask[min(cy, H-1), min(cx, W-1)].item()
-                    else:
-                        H, W = mask.shape[0], mask.shape[1]
-                        cy = int(box[1] * H)
-                        cx = int(box[0] * W)
-                        cls_id = mask[min(cy, H-1), min(cx, W-1)]
-                    
-                    if 0 < cls_id <= 20:
-                        det_target['cls_labels'][best_idx, cls_id - 1] = 1.0
+                    if 0 <= cls_idx < 20:
+                        det_target['cls_labels'][best_idx, cls_idx] = 1.0
 
         return image, mask, det_target
 
@@ -148,30 +259,6 @@ class VOCSegDetDataset(Dataset):
         union_area = box1_area + box2_area - inter_area
         
         return inter_area / (union_area + 1e-6)
-
-    def _generate_pseudo_boxes(self, mask):
-        """Generate pseudo bounding boxes from segmentation mask."""
-        # Find connected components (simplified)
-        boxes = []
-        for cls_id in np.unique(mask):
-            if cls_id == 0:  # Background
-                continue
-            # Get coordinates for this class
-            coords = np.where(mask == cls_id)
-            if len(coords[0]) > 0:
-                y_min, y_max = coords[0].min(), coords[0].max()
-                x_min, x_max = coords[1].min(), coords[1].max()
-                # Normalize to [0, 1]
-                h, w = mask.shape
-                # Convert to [cx, cy, w, h] format (center-based)
-                cx = ((x_min + x_max) / 2) / w
-                cy = ((y_min + y_max) / 2) / h
-                box_w = (x_max - x_min) / w
-                box_h = (y_max - y_min) / h
-                boxes.append([cx, cy, box_w, box_h])
-
-        return np.array(boxes) if boxes else np.zeros((0, 4))
-
 
 def get_dataloaders(config):
     """Create train and validation dataloaders."""

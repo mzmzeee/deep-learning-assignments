@@ -69,14 +69,14 @@ docs/_build/
 
 # PyBuilder
 target/
-
+.aim/
 # Jupyter Notebook
 .ipynb_checkpoints
 
 # IPython
 profile_default/
 ipython_config.py
-
+test_results/
 # pyenv
 .python-version
 
