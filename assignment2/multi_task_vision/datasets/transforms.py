@@ -78,11 +78,9 @@ class SegmentationDetectionTransform:
             raise ValueError(f"Unknown augmentation level: {level}")
 
     def __call__(self, image, mask=None, boxes=None):
-        """Apply transforms to image and optionally mask and boxes.
-
-        ``boxes`` are expected in normalized ``[cx, cy, w, h]`` format. Since
-        resizing keeps coordinates normalized, only horizontal flips need to
-        update them.
+        """
+        Apply transforms to image and optionally mask and boxes.
+        Returns: image, mask (if provided), boxes (if provided)
         """
         # Convert to tensors first
         image = self.to_tensor(image)
@@ -102,7 +100,7 @@ class SegmentationDetectionTransform:
                 if mask is not None:
                     mask = TF.hflip(mask.unsqueeze(0)).squeeze(0)
                 if boxes is not None:
-                    boxes[:, 0] = 1.0 - boxes[:, 0]  # Flip cx
+                    boxes[:, [0, 2]] = 1.0 - boxes[:, [2, 0]]  # Flip x coordinates
 
         # Apply preprocessing (normalize/standardize)
         image = self.preprocess(image)

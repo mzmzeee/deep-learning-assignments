@@ -11,10 +11,9 @@ def get_activation(name):
     """Return activation function based on config."""
     if name == "relu":
         return nn.ReLU(inplace=True)
-    elif name == "leaky_relu":
-        return nn.LeakyReLU(negative_slope=0.01, inplace=True)
-    elif name == "gelu":
-        return nn.GELU()
+    ##TODO:
+    ## elif name == "leaky_relu":
+    ## elif name == "gelu":
     else:
         raise ValueError(f"Unknown activation: {name}")
 

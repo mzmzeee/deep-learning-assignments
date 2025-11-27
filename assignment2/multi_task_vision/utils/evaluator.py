@@ -74,30 +74,17 @@ class DetectionMetrics:
         pred_dict: dict with 'cls_logits', 'bbox_pred'
         target_dict: dict with 'cls_labels', 'bbox_targets'
         """
-        cls_pred = torch.sigmoid(pred_dict['cls_logits']).detach().cpu()
-        bbox_pred = pred_dict['bbox_pred'].detach().cpu()
-
-        # Flatten batch and anchor dimensions: [B, 49, 20] -> [B*49, 20]
-        if cls_pred.dim() == 3:
-            cls_pred = cls_pred.view(-1, self.num_classes)
-            bbox_pred = bbox_pred.view(-1, 4)
+        cls_pred = torch.sigmoid(pred_dict['cls_logits']).cpu()
+        bbox_pred = pred_dict['bbox_pred'].cpu()
 
         self.all_preds.append({
             'cls': cls_pred,
             'bbox': bbox_pred
         })
 
-        cls_target = target_dict['cls_labels'].detach().cpu()
-        bbox_target = target_dict['bbox_targets'].detach().cpu()
-        
-        # Flatten targets: [B, 49, 20] -> [B*49, 20]
-        if cls_target.dim() == 3:
-            cls_target = cls_target.view(-1, self.num_classes)
-            bbox_target = bbox_target.view(-1, 4)
-
         self.all_targets.append({
-            'cls': cls_target,
-            'bbox': bbox_target
+            'cls': target_dict['cls_labels'].cpu(),
+            'bbox': target_dict['bbox_targets'].cpu()
         })
 
     def compute(self):
@@ -121,10 +108,8 @@ class DetectionMetrics:
             target = target[sorted_indices]
 
             # Compute precision-recall
-            # Compute precision-recall
-            # In a ranked list, we consider each item as a "prediction" at that rank
-            tp = (target == 1)
-            fp = (target == 0)
+            tp = (pred > 0.5) & (target == 1)
+            fp = (pred > 0.5) & (target == 0)
 
             tp_cumsum = tp.float().cumsum(0)
             fp_cumsum = fp.float().cumsum(0)
