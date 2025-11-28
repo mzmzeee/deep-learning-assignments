@@ -63,6 +63,22 @@ class UNetDecoder(nn.Module):
         return seg_output
 
 
+class FCNDecoder(nn.Module):
+    """Simple FCN decoder for segmentation."""
+
+    def __init__(self, backbone_channels, num_classes=21, activation="relu", dropout_rate=0.0):
+        super().__init__()
+        self.conv = ConvBlock(backbone_channels, 256, activation, dropout_rate)
+        self.segmentation_head = nn.Conv2d(256, num_classes, kernel_size=1)
+
+    def forward(self, features):
+        x = features['c5']
+        x = self.conv(x)
+        x = self.segmentation_head(x)
+        # Upsample to match input resolution (assuming 32x downsampling in backbone)
+        return nn.functional.interpolate(x, scale_factor=32, mode='bilinear', align_corners=False)
+
+
 class SimpleDetectionHead(nn.Module):
     """Simple detection head: predicts class scores and bbox offsets."""
 
@@ -126,8 +142,9 @@ class MultiTaskCNN(nn.Module):
         if model_cfg["backbone"] == "resnet18":
             backbone = models.resnet18()
             backbone_channels = 512
-        ##elif model_cfg["backbone"] == "resnet34":
-        ##elif model_cfg["backbone"] == "resnet50":
+        elif model_cfg["backbone"] == "resnet34":
+            backbone = models.resnet34()
+            backbone_channels = 512
         else:
             raise ValueError(f"Unknown backbone: {model_cfg['backbone']}")
 
@@ -148,11 +165,18 @@ class MultiTaskCNN(nn.Module):
                 activation=model_cfg["activation"],
                 dropout_rate=model_cfg["dropout_rate"] if config["regularization"]["dropout_enabled"] else 0.0
             )
+        elif model_cfg["segmentation_head"] == "fcn":
+            self.segmentation_head = FCNDecoder(
+                backbone_channels=backbone_channels,
+                num_classes=num_classes_seg,
+                activation=model_cfg["activation"],
+                dropout_rate=model_cfg["dropout_rate"] if config["regularization"]["dropout_enabled"] else 0.0
+            )
         else:
             raise ValueError(f"Unsupported segmentation head: {model_cfg['segmentation_head']}")
 
         # Detection head
-        if model_cfg["detection_head"] == "fpn":
+        if model_cfg["detection_head"] in ["fpn", "simple"]:
             # Using our simple detection head for now
             self.detection_head = SimpleDetectionHead(
                 backbone_channels=backbone_channels,

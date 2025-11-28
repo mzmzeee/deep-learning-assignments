@@ -1,0 +1,2204 @@
+{
+  "configs": [
+    {
+      "id": 1,
+      "name": "perfect_config_1",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 2,
+      "name": "perfect_config_2",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.5
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 3,
+      "name": "perfect_config_3",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 4,
+      "name": "perfect_config_4",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.5
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 5,
+      "name": "perfect_config_5",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 6,
+      "name": "perfect_config_6",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 2.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 7,
+      "name": "perfect_config_7",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 8,
+      "name": "perfect_config_8",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 2.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 9,
+      "name": "perfect_config_9",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.5
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 10,
+      "name": "perfect_config_10",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.5
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 11,
+      "name": "perfect_config_11",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 2.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 12,
+      "name": "perfect_config_12",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 13,
+      "name": "perfect_config_13",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 14,
+      "name": "perfect_config_14",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "leaky_relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 2.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 15,
+      "name": "perfect_config_15",
+      "category": "perfect",
+      "description": "Research-backed best practices with optimal settings.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "gelu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0001,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "focal",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 16,
+      "name": "good_config_1",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 17,
+      "name": "good_config_2",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 18,
+      "name": "good_config_3",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 19,
+      "name": "good_config_4",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 20,
+      "name": "good_config_5",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 21,
+      "name": "good_config_6",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 16,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 22,
+      "name": "good_config_7",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 23,
+      "name": "good_config_8",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 16,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 24,
+      "name": "good_config_9",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 25,
+      "name": "good_config_10",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 16,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 26,
+      "name": "good_config_11",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "fpn",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.3
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 27,
+      "name": "good_config_12",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "fpn",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 28,
+      "name": "good_config_13",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "heavy"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 29,
+      "name": "good_config_14",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.4
+        },
+        "training": {
+          "lr": 0.001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "ciou"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 30,
+      "name": "good_config_15",
+      "category": "good",
+      "description": "Solid configuration with some suboptimal choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "kaiming",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0005,
+          "batch_size": 8,
+          "weight_decay": 1e-05,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "normalize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 31,
+      "name": "medium_config_1",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 32,
+      "name": "medium_config_2",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 33,
+      "name": "medium_config_3",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 4,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 34,
+      "name": "medium_config_4",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 35,
+      "name": "medium_config_5",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 4,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 36,
+      "name": "medium_config_6",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 4,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 37,
+      "name": "medium_config_7",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 38,
+      "name": "medium_config_8",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 39,
+      "name": "medium_config_9",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 40,
+      "name": "medium_config_10",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 4,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 41,
+      "name": "medium_config_11",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 42,
+      "name": "medium_config_12",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 43,
+      "name": "medium_config_13",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 4,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 44,
+      "name": "medium_config_14",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "unet",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.0001,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 45,
+      "name": "medium_config_15",
+      "category": "medium",
+      "description": "Average performance configuration with mixed choices.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet18",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "xavier",
+          "init_backbone": true,
+          "dropout_rate": 0.2
+        },
+        "training": {
+          "lr": 0.002,
+          "batch_size": 8,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 1.0,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "standardize",
+          "augmentation_level": "basic"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 46,
+      "name": "bad_config_1",
+      "category": "bad",
+      "description": "Intentionally poor configuration.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "normal",
+          "init_backbone": true,
+          "dropout_rate": 0.5
+        },
+        "training": {
+          "lr": 0.01,
+          "batch_size": 32,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 0.5,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "none"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 47,
+      "name": "bad_config_2",
+      "category": "bad",
+      "description": "Intentionally poor configuration.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "normal",
+          "init_backbone": true,
+          "dropout_rate": 0.5
+        },
+        "training": {
+          "lr": 0.01,
+          "batch_size": 32,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 0.5,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "none"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    },
+    {
+      "id": 48,
+      "name": "bad_config_3",
+      "category": "bad",
+      "description": "Intentionally poor configuration.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "normal",
+          "init_backbone": true,
+          "dropout_rate": 0.5
+        },
+        "training": {
+          "lr": 0.01,
+          "batch_size": 32,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 0.5,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "none"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 49,
+      "name": "bad_config_4",
+      "category": "bad",
+      "description": "Intentionally poor configuration.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "normal",
+          "init_backbone": true,
+          "dropout_rate": 0.5
+        },
+        "training": {
+          "lr": 0.01,
+          "batch_size": 32,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 0.5,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "none"
+        },
+        "regularization": {
+          "dropout_enabled": true
+        }
+      }
+    },
+    {
+      "id": 50,
+      "name": "bad_config_5",
+      "category": "bad",
+      "description": "Intentionally poor configuration.",
+      "config": {
+        "system": {
+          "epochs": 1,
+          "device": "cuda",
+          "aim_repo": "./aim_logs",
+          "aim_experiment": "cv-hyperparam-study",
+          "save_checkpoint": true,
+          "seed": 42
+        },
+        "model": {
+          "backbone": "resnet34",
+          "segmentation_head": "fcn",
+          "detection_head": "simple",
+          "activation": "relu",
+          "init_scheme": "normal",
+          "init_backbone": true,
+          "dropout_rate": 0.5
+        },
+        "training": {
+          "lr": 0.01,
+          "batch_size": 32,
+          "weight_decay": 0.0,
+          "loss_weights": {
+            "seg": 0.5,
+            "det": 1.0
+          },
+          "seg_loss": "cross_entropy",
+          "det_loss": "smooth_l1"
+        },
+        "data": {
+          "dataset_root": "./data/VOC2012",
+          "preprocessing": "none",
+          "augmentation_level": "none"
+        },
+        "regularization": {
+          "dropout_enabled": false
+        }
+      }
+    }
+  ]
+}

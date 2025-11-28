@@ -9,7 +9,8 @@ import numpy as np
 from config import CONFIG
 from models.multi_task_cnn import MultiTaskCNN
 from datasets.voc_loader import get_dataloaders
-from utils.trainer import MultiTaskTrainer
+# from utils.trainer import MultiTaskTrainer  # Replaced with CustomTrainer
+from custom_trainer import CustomTrainer as MultiTaskTrainer
 from utils.aim_logger import init_aim, finish
 
 def set_seed(seed):

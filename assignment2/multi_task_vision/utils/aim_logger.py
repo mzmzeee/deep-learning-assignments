@@ -3,9 +3,10 @@ Aim logging utilities.
 STUDENTS DO NOT MODIFY THIS FILE.
 """
 
-from aim import Run, Figure
+from aim import Run, Image
 import torch
 import os
+import numpy as np
 from datetime import datetime
 
 
@@ -120,8 +121,6 @@ class AimLogger:
         Log best and worst predictions as images to Aim.
         Shows random samples with their IoU scores.
         """
-        from aim import Image
-
         # Convert tensors to numpy
         images = images.cpu()
         seg_preds = seg_preds.argmax(dim=1).cpu()  # [B, H, W]
@@ -154,7 +153,7 @@ class AimLogger:
                 Image(fig),
                 name="predictions/worst",
                 epoch=epoch,
-                context={"sample_idx": idx}
+                context={"sample_idx": int(idx)}
             )
 
         # Log best predictions
@@ -166,7 +165,7 @@ class AimLogger:
                 Image(fig),
                 name="predictions/best",
                 epoch=epoch,
-                context={"sample_idx": idx}
+                context={"sample_idx": int(idx)}
             )
 
     def _create_pred_visualization(self, image, pred, target, iou):
@@ -177,6 +176,7 @@ class AimLogger:
         import matplotlib.pyplot as plt
         import numpy as np
         from PIL import Image
+        import io
 
         # Denormalize image
         mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
@@ -204,13 +204,14 @@ class AimLogger:
 
         plt.tight_layout()
 
-        # Convert to PIL Image
-        fig.canvas.draw()
-        img_array = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
-        img_array = img_array.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+        # Convert to PIL Image using BytesIO to avoid backend issues
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', bbox_inches='tight')
+        buf.seek(0)
+        img = Image.open(buf)
         plt.close(fig)
 
-        return Image.fromarray(img_array)
+        return img
 
 
 # Global logger instance (used by trainer)
@@ -254,3 +255,10 @@ def finish():
     global _logger
     if _logger:
         _logger.finish()
+
+
+def log_predictions(images, seg_preds, seg_targets, epoch, num_samples=4):
+    """Convenience function to log predictions."""
+    global _logger
+    if _logger:
+        _logger.log_predictions(images, seg_preds, seg_targets, epoch, num_samples)
