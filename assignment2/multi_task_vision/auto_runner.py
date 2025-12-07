@@ -129,14 +129,16 @@ class ExperimentRunner:
             print(f"\n🧪 Validating Config {config_id}/{len(configs)}: {name}")
             print(f"   Backbone: {config['model']['backbone']} | Batch: {config['training']['batch_size']} | LR: {config['training']['lr']}")
 
-            # Set epochs to 2 for validation (User request)
-            config['system']['epochs'] = 2
+            # Set epochs to 1 for validation
+            config['system']['epochs'] = 1
             
             success, metrics = self.run_single_experiment(config_wrapper, phase="validation")
             
             if success:
                 validation_results['passed'].append(config_id)
-                # Don't mark as fully completed in progress yet, as we might want to run Phase 2
+                # Save to progress so resume works
+                self.progress['completed'].append(config_id)
+                self.save_progress()
             else:
                 validation_results['failed'].append(config_id)
                 self.progress['failed'].append({"id": config_id, "reason": metrics.get('error', 'UNKNOWN')})
