@@ -66,7 +66,7 @@ class MultiTaskTrainer:
         total_loss = 0.0
         num_batches = len(self.train_loader)
 
-        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]")
+        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]", mininterval=2.0)
 
         for batch_idx, (images, seg_targets, det_targets) in enumerate(pbar):
             images = images.to(self.device, non_blocking=True)
@@ -125,7 +125,7 @@ class MultiTaskTrainer:
         self.evaluator.reset()
 
         with torch.no_grad():
-            pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]")
+            pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]", mininterval=2.0)
 
             for images, seg_targets, det_targets in pbar:
                 images = images.to(self.device, non_blocking=True)
