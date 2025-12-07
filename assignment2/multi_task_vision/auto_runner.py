@@ -129,8 +129,8 @@ class ExperimentRunner:
             print(f"\n🧪 Validating Config {config_id}/{len(configs)}: {name}")
             print(f"   Backbone: {config['model']['backbone']} | Batch: {config['training']['batch_size']} | LR: {config['training']['lr']}")
 
-            # Set epochs to 1 for validation
-            config['system']['epochs'] = 1
+            # Set epochs for full training
+            config['system']['epochs'] = 60
             
             success, metrics = self.run_single_experiment(config_wrapper, phase="validation")
             
