@@ -185,29 +185,22 @@ class ExperimentRunner:
         
         self.update_config_file(config)
         
-        # Prepare command
-        # We pipe "y" to confirm any prompts if necessary, though train.py uses input()
-        # We'll use subprocess with text input
-        cmd = ['uv', 'run', 'python', 'train.py']
+        # Build command with args instead of stdin
+        cmd = ['uv', 'run', 'python', 'train.py', 
+               '--run_name', run_name]
+        if phase and config_wrapper.get('category'):
+            cmd.extend(['--tags', phase, config_wrapper['category']])
         
         start_time = time.time()
         
         try:
             process = subprocess.Popen(
                 cmd,
-                stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1
             )
-            
-            # Send inputs to train.py (run_name, tags)
-            # run_name
-            process.stdin.write(f"{run_name}\n")
-            # tags
-            process.stdin.write(f"{phase},{config_wrapper['category']}\n")
-            process.stdin.flush()
             
             # Monitor output
             metrics = {"miou": 0.0, "map": 0.0, "loss": 0.0}
@@ -277,6 +270,8 @@ class ExperimentRunner:
         finally:
             self.restore_config_file()
             torch.cuda.empty_cache()
+            import gc
+            gc.collect()
 
 def load_configs(filepath):
     with open(filepath, 'r') as f:

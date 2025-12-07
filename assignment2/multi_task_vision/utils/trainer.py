@@ -6,6 +6,9 @@ Students do not modify this file.
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+from torch.amp import autocast, GradScaler
+import logging
+logger = logging.getLogger(__name__)
 from .evaluator import MultiTaskEvaluator
 from .aim_logger import log_metrics, log_system_stats, save_checkpoint
 
@@ -28,6 +31,21 @@ class MultiTaskTrainer:
             lr=config["training"]["lr"],
             weight_decay=config["training"]["weight_decay"]
         )
+
+        # Mixed Precision Training
+        self.use_amp = config["training"].get("use_amp", True)
+        self.scaler = GradScaler('cuda', enabled=self.use_amp)
+
+        # Gradient clipping
+        self.grad_clip = config["training"].get("gradient_clip", 1.0)
+
+        # Gradient accumulation
+        self.accumulation_steps = config["training"].get("accumulation_steps", 1)
+
+        # Early stopping
+        self.best_val_loss = float('inf')
+        self.patience = config["training"].get("patience", 10)
+        self.patience_counter = 0
 
         # Loss functions
         self.seg_loss_fn = self._get_seg_loss()
@@ -72,40 +90,43 @@ class MultiTaskTrainer:
             images = images.to(self.device, non_blocking=True)
             seg_targets = seg_targets.to(self.device, non_blocking=True)
 
-            # Model forward pass
-            outputs = self.model(images)
+            # Mixed Precision forward pass
+            with autocast('cuda', enabled=self.use_amp):
+                outputs = self.model(images)
+                seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
+                
+                det_pred = outputs['detection']
+                det_cls_loss = nn.BCEWithLogitsLoss()(
+                    det_pred['cls_logits'],
+                    det_targets['cls_labels'].to(self.device)
+                )
+                det_bbox_loss = self.det_loss_fn(
+                    det_pred['bbox_pred'],
+                    det_targets['bbox_targets'].to(self.device)
+                )
+                
+                loss_weights = self.config["training"]["loss_weights"]
+                total_batch_loss = (
+                    loss_weights["seg"] * seg_loss +
+                    loss_weights["det"] * (det_cls_loss + det_bbox_loss)
+                )
+                total_batch_loss = total_batch_loss / self.accumulation_steps
 
-            # Compute losses
-            seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
+            # Scaled backward with gradient clipping
+            self.scaler.scale(total_batch_loss).backward()
 
-            # Detection loss (simplified)
-            det_pred = outputs['detection']
-            det_cls_loss = nn.BCEWithLogitsLoss()(
-                det_pred['cls_logits'],
-                det_targets['cls_labels'].to(self.device)
-            )
-            det_bbox_loss = self.det_loss_fn(
-                det_pred['bbox_pred'],
-                det_targets['bbox_targets'].to(self.device)
-            )
+            if (batch_idx + 1) % self.accumulation_steps == 0:
+                self.scaler.unscale_(self.optimizer)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+                self.optimizer.zero_grad()
 
-            # Combined loss
-            loss_weights = self.config["training"]["loss_weights"]
-            total_batch_loss = (
-                loss_weights["seg"] * seg_loss +
-                loss_weights["det"] * (det_cls_loss + det_bbox_loss)
-            )
-
-            # Backward pass
-            self.optimizer.zero_grad()
-            total_batch_loss.backward()
-            self.optimizer.step()
-
-            total_loss += total_batch_loss.item()
+            total_loss += total_batch_loss.item() * self.accumulation_steps
 
             # Update progress bar
             pbar.set_postfix({
-                "Loss": f"{total_batch_loss.item():.4f}",
+                "Loss": f"{total_batch_loss.item() * self.accumulation_steps:.4f}",
                 "Seg": f"{seg_loss.item():.4f}",
                 "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
             })
@@ -131,28 +152,29 @@ class MultiTaskTrainer:
                 images = images.to(self.device, non_blocking=True)
                 seg_targets = seg_targets.to(self.device, non_blocking=True)
 
-                # Model forward pass
-                outputs = self.model(images)
+                # Mixed Precision forward pass
+                with autocast('cuda', enabled=self.use_amp):
+                    outputs = self.model(images)
 
-                # Compute losses
-                seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
+                    # Compute losses
+                    seg_loss = self.seg_loss_fn(outputs['segmentation'], seg_targets)
 
-                det_pred = outputs['detection']
-                det_cls_loss = nn.BCEWithLogitsLoss()(
-                    det_pred['cls_logits'],
-                    det_targets['cls_labels'].to(self.device)
-                )
-                det_bbox_loss = self.det_loss_fn(
-                    det_pred['bbox_pred'],
-                    det_targets['bbox_targets'].to(self.device)
-                )
+                    det_pred = outputs['detection']
+                    det_cls_loss = nn.BCEWithLogitsLoss()(
+                        det_pred['cls_logits'],
+                        det_targets['cls_labels'].to(self.device)
+                    )
+                    det_bbox_loss = self.det_loss_fn(
+                        det_pred['bbox_pred'],
+                        det_targets['bbox_targets'].to(self.device)
+                    )
 
-                # Combined loss
-                loss_weights = self.config["training"]["loss_weights"]
-                total_batch_loss = (
-                    loss_weights["seg"] * seg_loss +
-                    loss_weights["det"] * (det_cls_loss + det_bbox_loss)
-                )
+                    # Combined loss
+                    loss_weights = self.config["training"]["loss_weights"]
+                    total_batch_loss = (
+                        loss_weights["seg"] * seg_loss +
+                        loss_weights["det"] * (det_cls_loss + det_bbox_loss)
+                    )
 
                 total_loss += total_batch_loss.item()
 
@@ -194,6 +216,14 @@ class MultiTaskTrainer:
             if is_best:
                 self.best_miou = metrics["miou"]
 
+            # Early stopping
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                self.patience_counter = 0
+            else:
+                self.patience_counter += 1
+                logger.warning(f"No improvement for {self.patience_counter}/{self.patience} epochs")
+
             save_checkpoint(
                 self.model,
                 self.optimizer,
@@ -208,3 +238,11 @@ class MultiTaskTrainer:
             print(f"  mIoU: {metrics['miou']:.4f} (Best: {self.best_miou:.4f})")
             print(f"  Pixel Acc: {metrics['pixel_accuracy']:.4f}")
             print(f"  mAP: {metrics['map']:.4f}")
+
+            # Check early stopping
+            if self.patience_counter >= self.patience:
+                logger.info(f"Early stopping at epoch {epoch}")
+                break
+
+            # Clean GPU memory
+            torch.cuda.empty_cache()

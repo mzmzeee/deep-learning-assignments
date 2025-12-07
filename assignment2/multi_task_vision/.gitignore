@@ -126,3 +126,7 @@ Full_MNIST.py
 checkpoints/
 aim_logs/
 results/
+
+# Additional temp/backup files
+*.bak
+temp_*.json

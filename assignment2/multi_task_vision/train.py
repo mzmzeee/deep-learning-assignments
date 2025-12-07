@@ -6,6 +6,7 @@ Students run this script with different config modifications.
 import torch
 import random
 import numpy as np
+import argparse
 from config import CONFIG
 from models.multi_task_cnn import MultiTaskCNN
 from datasets.voc_loader import get_dataloaders
@@ -23,20 +24,19 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 def main():
+    # Parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--run_name', type=str, default=None)
+    parser.add_argument('--tags', type=str, nargs='+', default=[])
+    args = parser.parse_args()
+
+    run_name = args.run_name
+    tags = args.tags if args.tags else []
+    if tags:
+        CONFIG["system"]["experiment_tags"] = tags
+
     # Set seed for reproducibility
     set_seed(CONFIG["system"]["seed"])
-
-    # Initialize Aim (students should customize run_name)
-    run_name = input("Enter a descriptive run name (or press Enter for default): ")
-    if not run_name.strip():
-        run_name = None
-
-    # Add experiment tags
-    tags = input("Enter experiment tags (comma-separated, e.g., phase1-architecture,relu): ")
-    if tags.strip():
-        tags = [tag.strip() for tag in tags.split(",")]
-        # Aim doesn't have tags in the same way, but we can store them in params
-        CONFIG["system"]["experiment_tags"] = tags
 
     init_aim(CONFIG, run_name=run_name)
 

@@ -29,14 +29,14 @@ class SegmentationMetrics:
 
         for i in range(pred.shape[0]):
             valid_mask = target[i] != 255  # Ignore void labels
-            pred_valid = pred[i][valid_mask]
-            target_valid = target[i][valid_mask]
+            pred_valid = pred[i][valid_mask].ravel()
+            target_valid = target[i][valid_mask].ravel()
 
-            for j in range(self.num_classes):
-                for k in range(self.num_classes):
-                    self.confusion_matrix[j, k] += np.sum(
-                        (pred_valid == j) & (target_valid == k)
-                    )
+            # Vectorized confusion matrix update using np.bincount
+            # This is 10-100x faster than the nested loop
+            indices = target_valid * self.num_classes + pred_valid
+            counts = np.bincount(indices, minlength=self.num_classes * self.num_classes)
+            self.confusion_matrix += counts.reshape(self.num_classes, self.num_classes)
 
     def compute(self):
         """Compute metrics."""
