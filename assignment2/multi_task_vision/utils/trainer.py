@@ -10,17 +10,21 @@ from torch.amp import autocast, GradScaler
 import logging
 logger = logging.getLogger(__name__)
 from .evaluator import MultiTaskEvaluator
-from .aim_logger import log_metrics, log_system_stats, save_checkpoint
+import utils.aim_logger as aim_logger
 
 class MultiTaskTrainer:
     """Handles multi-task training and validation."""
 
-    def __init__(self, model, config, train_loader, val_loader):
+    def __init__(self, model, config, train_loader, val_loader, checkpoint_path=None):
         self.model = model
         self.config = config
         self.train_loader = train_loader
         self.val_loader = val_loader
+        self.val_loader = val_loader
         self.device = config["system"]["device"]
+        self.simple_logging = config["system"].get("simple_logging", False)
+        self.start_epoch = 1
+        self.checkpoint_path = checkpoint_path
 
         # Move model to device
         self.model.to(self.device)
@@ -84,9 +88,14 @@ class MultiTaskTrainer:
         total_loss = 0.0
         num_batches = len(self.train_loader)
 
-        pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]", mininterval=5.0, ncols=100, leave=False)
+        pbar = None
+        if not self.simple_logging:
+            pbar = tqdm(self.train_loader, desc=f"Epoch {epoch} [Train]", mininterval=5.0, ncols=100, leave=False)
+            iterator = pbar
+        else:
+            iterator = self.train_loader
 
-        for batch_idx, (images, seg_targets, det_targets) in enumerate(pbar):
+        for batch_idx, (images, seg_targets, det_targets) in enumerate(iterator):
             images = images.to(self.device, non_blocking=True)
             seg_targets = seg_targets.to(self.device, non_blocking=True)
 
@@ -124,16 +133,21 @@ class MultiTaskTrainer:
 
             total_loss += total_batch_loss.item() * self.accumulation_steps
 
-            # Update progress bar
-            pbar.set_postfix({
-                "Loss": f"{total_batch_loss.item() * self.accumulation_steps:.4f}",
-                "Seg": f"{seg_loss.item():.4f}",
-                "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
-            })
+            # Update progress string
+            if self.simple_logging:
+                if batch_idx % 10 == 0:  # Log every 10 batches
+                    print(f"Batch {batch_idx}/{num_batches} | Loss: {total_batch_loss.item() * self.accumulation_steps:.4f} | Seg: {seg_loss.item():.4f} | Det: {det_cls_loss.item() + det_bbox_loss.item():.4f}", flush=True)
+            else:
+                # Update progress bar
+                pbar.set_postfix({
+                    "Loss": f"{total_batch_loss.item() * self.accumulation_steps:.4f}",
+                    "Seg": f"{seg_loss.item():.4f}",
+                    "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
+                })
 
             # Log system stats every 100 batches
             if batch_idx % 100 == 0:
-                log_system_stats()
+                aim_logger.log_system_stats()
 
         return total_loss / num_batches
 
@@ -146,9 +160,14 @@ class MultiTaskTrainer:
         self.evaluator.reset()
 
         with torch.no_grad():
-            pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]", mininterval=5.0, ncols=100, leave=False)
+            pbar = None
+            if not self.simple_logging:
+                pbar = tqdm(self.val_loader, desc=f"Epoch {epoch} [Val]", mininterval=5.0, ncols=100, leave=False)
+                iterator = pbar
+            else:
+                iterator = self.val_loader
 
-            for images, seg_targets, det_targets in pbar:
+            for images, seg_targets, det_targets in iterator:
                 images = images.to(self.device, non_blocking=True)
                 seg_targets = seg_targets.to(self.device, non_blocking=True)
 
@@ -181,12 +200,13 @@ class MultiTaskTrainer:
                 # Update metrics
                 self.evaluator.update(outputs, (images, seg_targets, det_targets))
 
-                # Update progress bar
-                pbar.set_postfix({
-                    "Loss": f"{total_batch_loss.item():.4f}",
-                    "Seg": f"{seg_loss.item():.4f}",
-                    "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
-                })
+                if not self.simple_logging:
+                    # Update progress bar
+                    pbar.set_postfix({
+                        "Loss": f"{total_batch_loss.item():.4f}",
+                        "Seg": f"{seg_loss.item():.4f}",
+                        "Det": f"{det_cls_loss.item() + det_bbox_loss.item():.4f}"
+                    })
 
         # Compute final metrics
         metrics = self.evaluator.compute()
@@ -197,7 +217,10 @@ class MultiTaskTrainer:
         """Full training loop."""
         num_epochs = self.config["system"]["epochs"]
 
-        for epoch in range(1, num_epochs + 1):
+        if self.checkpoint_path:
+            self.load_checkpoint(self.checkpoint_path)
+
+        for epoch in range(self.start_epoch, num_epochs + 1):
             print(f"\n{'='*50}")
             print(f"Epoch {epoch}/{num_epochs}")
             print(f"{'='*50}")
@@ -209,7 +232,7 @@ class MultiTaskTrainer:
             val_loss, metrics = self.validate(epoch)
 
             # Log to Aim
-            log_metrics(train_loss, val_loss, metrics, epoch)
+            aim_logger.log_metrics(train_loss, val_loss, metrics, epoch)
 
             # Save checkpoint
             is_best = metrics["miou"] > self.best_miou
@@ -224,7 +247,7 @@ class MultiTaskTrainer:
                 self.patience_counter += 1
                 logger.warning(f"No improvement for {self.patience_counter}/{self.patience} epochs")
 
-            save_checkpoint(
+            aim_logger.save_checkpoint(
                 self.model,
                 self.optimizer,
                 epoch,
@@ -246,3 +269,19 @@ class MultiTaskTrainer:
 
             # Clean GPU memory
             torch.cuda.empty_cache()
+
+    def load_checkpoint(self, path):
+        """Load checkpoint from path."""
+        logger.info(f"Loading checkpoint from {path}")
+        print(f"Loading checkpoint from {path}")
+        # weights_only=False required for numpy scalars/older pytorch versions compat
+        checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+        
+        self.model.load_state_dict(checkpoint['model_state_dict'])
+        self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        
+        # Load other state if available
+        self.start_epoch = checkpoint.get('epoch', 0) + 1
+        self.best_miou = checkpoint.get('metrics', {}).get('miou', 0.0)
+        
+        print(f"Resuming from epoch {self.start_epoch}")

@@ -170,14 +170,23 @@ class ExperimentRunner:
                 
             print(f"\n Training Config {config_id}: {config_wrapper['name']}")
             
-            # Set epochs to 2 for training (User request)
-            config_wrapper['config']['system']['epochs'] = 2
+            # Set epochs to 60 for training
+            config_wrapper['config']['system']['epochs'] = 60
             
             success, metrics = self.run_single_experiment(config_wrapper, phase="training")
             
             if success:
                 self.progress['completed'].append(config_id)
                 self.save_progress()
+                
+                # Copy metrics to results folder
+                results_file = Path(f"./results/training_report_{config_id}.json")
+                try:
+                    with open(results_file, 'w') as f:
+                        json.dump(metrics, f, indent=4)
+                    print(f" Saved training report to {results_file}")
+                except Exception as e:
+                    print(f" Failed to save training report: {e}")
             else:
                 self.progress['failed'].append({"id": config_id, "reason": metrics.get('error', 'UNKNOWN')})
                 self.save_progress()
@@ -195,9 +204,50 @@ class ExperimentRunner:
         
         self.update_config_file(config)
         
+        # Helper to find checkpoints
+        checkpoints_dir = Path("./checkpoints")
+        checkpoint_path = None
+        
+        # Check if we are resuming an interrupted run
+        # Only do this if resume flag is ON and we are in training phase
+        if self.resume and phase == "training":
+             if checkpoints_dir.exists():
+                # Only look for checkpoints belonging to the current run
+                cps = list(checkpoints_dir.glob(f"{run_name}*.pth"))
+                if cps:
+                    print(f"\n Found {len(cps)} existing checkpoints for {run_name}.")
+                    print("Do you want to resume from a checkpoint? (y/n)")
+                    # Since we are in auto_runner, maybe we shouldn't block?
+                    # But the user EXPLICITLY asked: "give me to chose"
+                    # We will use input() with a timeout if possible, but standard input() blocks.
+                    # Given the user instruction, we should assume interactive mode is fine for this choice.
+                    
+                    try:
+                        choice = input("Resume? [y/n]: ")
+                        if choice.lower() == 'y':
+                            # List checkpoints
+                            print("Available checkpoints:")
+                            for i, cp in enumerate(cps):
+                                # Try to get mIoU if possible (from filename or just list them)
+                                # Filename format isn't strict, so we just list paths
+                                # Best would be to load them, but that's slow.
+                                # User said "based on mIoU". Our checkpoints are just "best_checkpoint.pth" and "latest_checkpoint.pth"
+                                # We can't easily know mIoU without loading.
+                                print(f" {i}: {cp.name}")
+                            
+                            idx_str = input(f"Enter index to resume (0-{len(cps)-1}): ")
+                            if idx_str.isdigit() and 0 <= int(idx_str) < len(cps):
+                                checkpoint_path = str(cps[int(idx_str)])
+                                print(f"Resuming from {checkpoint_path}")
+                    except Exception as e:
+                        print(f"Skipping resume prompt due to error: {e}")
+
         # Build command with args instead of stdin
         cmd = ['uv', 'run', 'python', 'train.py', 
-               '--run_name', run_name]
+               '--run_name', run_name, '--no-tqdm']
+        if checkpoint_path:
+            cmd.extend(['--checkpoint', checkpoint_path])
+            
         if phase and config_wrapper.get('category'):
             cmd.extend(['--tags', phase, config_wrapper['category']])
         
@@ -210,7 +260,7 @@ class ExperimentRunner:
                 stderr=subprocess.STDOUT,
                 text=True,
                 bufsize=1
-            )
+            ) # stdin=subprocess.PIPE not needed now because we use args
             
             # Monitor output
             metrics = {"miou": 0.0, "map": 0.0, "loss": 0.0}
@@ -223,40 +273,59 @@ class ExperimentRunner:
                 
                 # 1. OOM Detection
                 if "CUDA out of memory" in line:
-                    process.kill()
+                    print("💀 OOM detected! Terminating...")
+                    process.terminate()
+                    try:
+                        process.wait(timeout=10)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
                     return False, {"error": "OOM"}
                 
                 # 2. Loss Monitoring
                 if "Loss:" in line:
-                    # Example: Loss: 2.45 | Seg: 1.2 | Det: 1.25
                     try:
-                        parts = line.split("|")
-                        loss_str = parts[0].split(":")[1].strip()
-                        loss_val = float(loss_str)
-                        metrics["loss"] = loss_val
-                        loss_history.append(loss_val)
-                        
-                        # Exploding Gradient Check
-                        if loss_val > 1000 or torch.isnan(torch.tensor(loss_val)):
-                            process.kill()
-                            return False, {"error": "EXPLODING_GRADIENTS"}
+                        # Regex to capture Loss, Seg, Det values regardless of position
+                        loss_match = re.search(r"Loss:\s*([\d\.]+)", line)
+                        if loss_match:
+                            loss_val = float(loss_match.group(1))
+                            metrics["loss"] = loss_val
+                            loss_history.append(loss_val)
                             
-                    except:
+                            # Exploding Gradient Check
+                            if loss_val > 1000 or torch.isnan(torch.tensor(loss_val)):
+                                print("💥 Exploding gradients detected! Terminating...")
+                                process.terminate()
+                                try:
+                                    process.wait(timeout=10)
+                                except subprocess.TimeoutExpired:
+                                    process.kill()
+                                return False, {"error": "EXPLODING_GRADIENTS"}
+                    except Exception as e:
                         pass
 
                 # 3. Metrics Monitoring
                 if "mIoU:" in line:
                     try:
-                        metrics["miou"] = float(line.split(":")[1].strip().split()[0])
+                        # Regex for mIoU
+                        miou_match = re.search(r"mIoU:\s*([\d\.]+)", line)
+                        if miou_match:
+                            metrics["miou"] = float(miou_match.group(1))
                     except: pass
                 if "mAP:" in line:
                     try:
-                        metrics["map"] = float(line.split(":")[1].strip())
+                        # Regex for mAP
+                        map_match = re.search(r"mAP:\s*([\d\.]+)", line)
+                        if map_match:
+                            metrics["map"] = float(map_match.group(1))
                     except: pass
 
             process.wait()
             
             if process.returncode != 0:
+                print(f"Process failed with return code {process.returncode}")
+                # return False, {"error": f"Process exited with code {process.returncode}"}
+                # If we have gathered metrics, we might want to return them? 
+                # But usually code 1 means crash.
                 return False, {"error": f"Process exited with code {process.returncode}"}
             
             # Phase 1 Specific Checks

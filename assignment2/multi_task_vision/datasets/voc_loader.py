@@ -124,16 +124,18 @@ def get_dataloaders(config):
         train_dataset,
         batch_size=train_cfg["batch_size"],
         shuffle=True,
-        num_workers=4,
-        pin_memory=True
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True
     )
 
     val_loader = DataLoader(
         val_dataset,
         batch_size=train_cfg["batch_size"],
         shuffle=False,
-        num_workers=4,
-        pin_memory=True
+        num_workers=8,
+        pin_memory=True,
+        persistent_workers=True
     )
 
     return train_loader, val_loader

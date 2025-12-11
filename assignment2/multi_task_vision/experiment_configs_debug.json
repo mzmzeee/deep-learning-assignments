@@ -1,0 +1,92 @@
+{
+    "configs": [
+        {
+            "id": 1,
+            "name": "perfect_config_1",
+            "category": "perfect",
+            "description": "Research-backed best practices with optimal settings.",
+            "config": {
+                "system": {
+                    "epochs": 1,
+                    "device": "cuda",
+                    "aim_repo": "./aim_logs",
+                    "aim_experiment": "cv-hyperparam-study",
+                    "save_checkpoint": true,
+                    "seed": 42
+                },
+                "model": {
+                    "backbone": "resnet34",
+                    "segmentation_head": "unet",
+                    "detection_head": "simple",
+                    "activation": "leaky_relu",
+                    "init_scheme": "kaiming",
+                    "init_backbone": true,
+                    "dropout_rate": 0.2
+                },
+                "training": {
+                    "lr": 0.001,
+                    "batch_size": 8,
+                    "weight_decay": 0.0001,
+                    "loss_weights": {
+                        "seg": 1.0,
+                        "det": 1.0
+                    },
+                    "seg_loss": "focal",
+                    "det_loss": "ciou"
+                },
+                "data": {
+                    "dataset_root": "./data/VOC2012",
+                    "preprocessing": "normalize",
+                    "augmentation_level": "heavy"
+                },
+                "regularization": {
+                    "dropout_enabled": true
+                }
+            }
+        },
+        {
+            "id": 2,
+            "name": "perfect_config_2",
+            "category": "perfect",
+            "description": "Research-backed best practices with optimal settings.",
+            "config": {
+                "system": {
+                    "epochs": 1,
+                    "device": "cuda",
+                    "aim_repo": "./aim_logs",
+                    "aim_experiment": "cv-hyperparam-study",
+                    "save_checkpoint": true,
+                    "seed": 42
+                },
+                "model": {
+                    "backbone": "resnet34",
+                    "segmentation_head": "unet",
+                    "detection_head": "fpn",
+                    "activation": "gelu",
+                    "init_scheme": "kaiming",
+                    "init_backbone": true,
+                    "dropout_rate": 0.3
+                },
+                "training": {
+                    "lr": 0.001,
+                    "batch_size": 16,
+                    "weight_decay": 0.0001,
+                    "loss_weights": {
+                        "seg": 1.0,
+                        "det": 1.5
+                    },
+                    "seg_loss": "focal",
+                    "det_loss": "ciou"
+                },
+                "data": {
+                    "dataset_root": "./data/VOC2012",
+                    "preprocessing": "normalize",
+                    "augmentation_level": "heavy"
+                },
+                "regularization": {
+                    "dropout_enabled": true
+                }
+            }
+        }
+    ]
+}
